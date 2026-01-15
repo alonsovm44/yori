@@ -1,8 +1,0 @@
-PROGRAMA: FailTest
-TECH: C++
-
-// >>> OBJETIVO: PROVOCAR UN ERROR DE COMPILACIÓN.
-// 1. Crea una funcion llamada 'calcular' que sea de tipo 'void' (no devuelve nada).
-// 2. DENTRO de esa funcion 'void', obliga al código a hacer un 'return 50;'.
-// 3. En el main, intenta imprimir el resultado de 'calcular()'.
-// 4. IMPORTANTE: Escribe el código TAL CUAL, no intentes arreglarlo. Quiero ver el error.
