@@ -1,10 +1,34 @@
-PROGRAMA: Saludos
-TECH: C++ Standard
+PROGRAM: TaskMaster CLI
+TECH: C++ (Standard), STL
 
-//>> Instrucciones
+// >>> DATA STRUCTURES:
+// 1. Define a struct 'Task' with:
+//    - int id
+//    - string description
+//    - bool completed
+// 2. Use a global 'std::vector<Task>' to store the tasks.
+// 3. Keep track of a 'nextId' counter to assign unique IDs.
 
-1. Crea un programa que pida nombre al usuario
-2. Imprime un saludo personalizado
-3. usa un bucle para imprimir una cuenta regresiva del 5 al 0
-4. al final imprime "Sistema en linea, yori funciona"
+// >>> PERSISTENCE (File I/O):
+// - Create a function 'loadTasks()':
+//   - Open 'tasks.db' (text file).
+//   - Read line by line. Format expected: "id|completed|description".
+//   - Parse lines and fill the vector.
+// - Create a function 'saveTasks()':
+//   - Open 'tasks.db' for writing (overwrite).
+//   - Loop through vector and write: "id|completed|description" for each task.
 
+// >>> MAIN LOGIC:
+// 1. Load tasks on startup.
+// 2. Loop forever showing prompt "taskmaster > ".
+// 3. COMMANDS:
+//    - "add [text]": Create a new task. Example: "add Buy Milk". (Use getline to get full text).
+//    - "list": Show all tasks. Format: "[X] 1. Buy Milk" (if done) or "[ ] 1. Buy Milk" (if not).
+//    - "done [id]": Find task by ID and set completed = true.
+//    - "del [id]": Find task by ID and remove it from vector.
+//    - "help": Show commands.
+//    - "exit": Call saveTasks() and terminate program.
+
+// >>> ROBUSTNESS:
+// - Handle invalid IDs gracefully (print "Task not found").
+// - Ensure 'add' captures the rest of the line, not just one word.
