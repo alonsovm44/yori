@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
         if (currentError.empty()) {
             prompt = "ROLE: Expert C++ Compiler.\nTASK: Translate this Yori code to a SINGLE, COMPLETE C++ file.\nSOURCE YORI:\n" + yoriCode + "\nOUTPUT: Only C++ code.";
         } else {
-            cout << "   🧬 [EVOLUCION] Corrigiendo error..." << endl;
+            cout << "   [EVOLUCION] Corrigiendo error..." << endl;
             prompt = "ROLE: Expert C++ Debugger.\nTASK: Fix this C++ code based on the error.\nERROR:\n" + currentError + "\nORIGINAL YORI:\n" + yoriCode + "\nOUTPUT: Only corrected C++ code.";
         }
 
@@ -228,6 +228,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    cerr << "\n💀 BUILD FAILED." << endl;
+    cerr << "\n BUILD FAILED." << endl;
     return 1;
 }
