@@ -34,7 +34,7 @@ Programming has traditionally required years of study to master syntax and memor
 ### Configuration (`config.json`)
 You can configure both local and cloud profiles simultaneously. Yori will switch based on the flags you use.
 
- # Usage (HOW TO USE THE CLI)
+ # Usage 
 Command Syntax
 PowerShell
 
