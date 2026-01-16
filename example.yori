@@ -1,0 +1,27 @@
+//this is a simple yori program to showcase the technology
+
+PROGRAM: simple calculator
+TECH: C++ Std
+
+print("Enter a number") 
+read value entered by the user and save it in (number) (either float or integer) A
+
+print("Enter a second number)
+Repeat the above logic in a variable B
+
+Perform with those two values
+
+1. Addition
+2. Multiplication
+3. Substraction
+4. Division
+    in case of 0 division, avoid doing the division and prompt a warning to the screen
+5.A^B
+6.B^A
+7.factorial of A
+8.factorial of B
+
+print points 1 to 7 in a list
+
+end program 
+print "type any key to exit"

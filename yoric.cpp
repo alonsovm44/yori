@@ -298,6 +298,15 @@ int main(int argc, char* argv[]) {
         if (CURRENT_LANG.producesBinary && (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c" || CURRENT_LANG.id == "go")) {
              valCmd += " -o temp_check.exe";
         }
+        // KEY CORRECTION:
+        // Si es C++ o C, g++ necesita saber explícitamente dónde poner el exe temporal
+        // para que no choque con nuestros archivos.
+        string tempBin = "temp_check.exe";
+        if (CURRENT_LANG.producesBinary && (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c" || CURRENT_LANG.id == "go" || CURRENT_LANG.id == "rust")) {
+             // Rust usa -o de forma distinta, pero para g++ es crucial
+             if (CURRENT_LANG.id == "rust") valCmd += " -o " + tempBin;
+             else valCmd += " -o " + tempBin;
+        }
 
         string output = execCmd(valCmd);
         
@@ -308,9 +317,42 @@ int main(int argc, char* argv[]) {
 
         if (success) {
             cout << "\nBUILD SUCCESSFUL: " << outputName << endl;
-            remove(outputName.c_str());
-            rename(tempFile.c_str(), outputName.c_str());
-            remove("temp_check.exe");
+            
+            // SAVING LOGIC CORRECTED
+            
+            // CASO 1: COMPILED LANGUAGES (C++, Rust, Go, Zig)
+            // El usuario quiere el .exe final, no el código fuente (usualmente).
+            if (CURRENT_LANG.producesBinary) {
+                // Borramos cualquier basura anterior
+                remove(outputName.c_str());
+                
+                // Renombramos el binario temporal generado por el compilador al nombre final
+                if (rename(tempBin.c_str(), outputName.c_str()) != 0) {
+                    cerr << "Error moving binary to " << outputName << endl;
+                    // Fallback: copiar si rename falla (común en Windows entre discos)
+                    string copyCmd = "copy /Y " + tempBin + " " + outputName + " > NUL";
+                    system(copyCmd.c_str());
+                }
+                
+                // Opcional: ¿Guardar también el código fuente?
+                // Muchos usuarios de Yori querrán ver el código generado.
+                // Guardémoslo como example.cpp
+                string sourceName = stripExt(outputName) + CURRENT_LANG.extension;
+                remove(sourceName.c_str());
+                rename(tempFile.c_str(), sourceName.c_str());
+                
+                cout << "   [Binary]: " << outputName << endl;
+                cout << "   [Source]: " << sourceName << endl;
+            } 
+            // CASO 2: Lenguajes Interpretados/Scripts (Python, JS, etc)
+            else {
+                remove(outputName.c_str());
+                rename(tempFile.c_str(), outputName.c_str());
+                cout << "   [Script]: " << outputName << endl;
+            }
+            
+            // Limpieza final
+            remove(tempBin.c_str());
             return 0;
         }
         currentError = output;
