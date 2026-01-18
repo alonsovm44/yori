@@ -266,32 +266,35 @@ int main(int argc, char* argv[]) {
     initLogger(); // Start logging session
 
     if (argc < 2) {
-        cout << "Usage: yori <input.extension> [-o output.extension] [-u]\nNote: Yori accepts any text file as input, it does not need to be a .yori file" << endl;
+        cout << "Usage: yori <input.extension> [-o output.extension] [-cloud | -local] [-u]\nNote: Yori accepts any text file as input, it does not need to be a .yori file" << endl;
         return 0;
     }
 
-    string inputFile = argv[1];
-    if (inputFile == "--version" || inputFile == "-v") {
-        cout << "Yori Compiler v4.4" << endl;
-        return 0;
-    }
+    string inputFile = "";
     string outputName = "";
     string mode = "local"; 
     bool explicitLang = false;
     bool updateMode = false;
 
-    for(int i=2; i<argc; i++) {
+    for(int i=1; i<argc; i++) {
         string arg = argv[i];
-        if (arg == "-cloud") mode = "cloud";
-        if (arg == "-local") mode = "local";
-        if (arg == "-u") updateMode = true;
-        if (arg == "-verbose") VERBOSE_MODE = true;
-        if (arg == "-o" && i+1 < argc) outputName = argv[i+1];
-        if (arg[0] == '-') {
+        if (arg == "--version" || arg == "-v") {
+            cout << "Yori Compiler v4.4" << endl;
+            return 0;
+        }
+        else if (arg == "-cloud") mode = "cloud";
+        else if (arg == "-local") mode = "local";
+        else if (arg == "-u") updateMode = true;
+        else if (arg == "-verbose") VERBOSE_MODE = true;
+        else if (arg == "-o" && i+1 < argc) { outputName = argv[i+1]; i++; }
+        else if (arg[0] == '-') {
             string cleanArg = arg.substr(1); 
             if (LANG_DB.count(cleanArg)) { CURRENT_LANG = LANG_DB[cleanArg]; explicitLang = true; }
         }
+        else if (inputFile.empty()) inputFile = arg;
     }
+
+    if (inputFile.empty()) { cerr << "Error: Input missing." << endl; return 1; }
 
     if (!loadConfig(mode)) return 1;
 
