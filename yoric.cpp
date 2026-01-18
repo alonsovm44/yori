@@ -285,7 +285,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-cloud") mode = "cloud";
         else if (arg == "-local") mode = "local";
         else if (arg == "-u") updateMode = true;
-        else if (arg == "-verbose") VERBOSE_MODE = true;
+        else if (arg == "-verbose" || arg == "-peek") VERBOSE_MODE = true;
         else if (arg == "-o" && i+1 < argc) { outputName = argv[i+1]; i++; }
         else if (arg[0] == '-') {
             string cleanArg = arg.substr(1); 

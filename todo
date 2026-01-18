@@ -1,7 +1,7 @@
 # fixes
 
-1. fix -u flag not working (done?)
-2. make yori read the config file in the installation folder and not in the CWD
-3. fix compiler not overwriting previous source and excecutable when updating
-4. add caching system
+1. fix -u flag not working (done)
+
+3. fix compiler not overwriting previous source and excecutable when updating (done)
+4. add caching system (done)
 5. add preprocessor INCLUDE feature

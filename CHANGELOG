@@ -1,20 +1,39 @@
-18 / JAN / 2026
-FIXED UTF-8 ERROR ON UPDATE MODE
-ADDED CONFIG SEARCH IN INSTALL DIR
-FIXED COMPILATION WARNINGS
-FIXED FILE OVERWRITE ERRORS
-REMOVED -K FLAG (ALWAYS KEEP SOURCE)
-ADDED KOTLIN SUPPORT
-ADDED MODULAR IMPORT SYSTEM
-ADDED BUILD CACHING
-ADDED VERSION COMMAND
-ADDED VERBOSE MODE
-IMPROVED ARGUMENT PARSING
+# Changelog
 
--15/JAN/2026
-ADDED 20 LANGUAGE SUPPORT
-MODIFIED README FILE TO INCLUDE NEW FEATURES
-ADDED NEW RELEASE ZIPS
+All notable changes in Yori are documented here
 
--14/JAN/2026
-INITIAL RELEASED VERSION
+## [Unreleased] / En desarrollo
+- (work in progress)
+
+## 2026-01-18
+### Fixed
+- UTF-8 error on update mode
+- Compilation warnings
+- File overwrite errors
+
+### Changed
+- Removed `-k` flag (now always keeps source files)
+
+### Added
+- Config search in install dir
+- Kotlin support
+- Modular import system
+- Build caching
+- Version command (`yori --version` o similar)
+- Verbose mode
+
+### Improved
+- Argument parsing
+
+## 2026-01-15
+### Added
+- Support for 20+ programming languages
+- Updated README with new features
+- New release ZIPs
+
+## 2026-01-14
+### Added
+- Initial release version
+
+## Notas adicionales
+- The project is in early alpha. Contributions are welcomed / son bienvenidas!
