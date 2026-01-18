@@ -172,8 +172,11 @@ string resolveImports(string code, string basePath) {
         string cleanLine = line;
         cleanLine.erase(0, cleanLine.find_first_not_of(" \t\r\n"));
         
-        if (cleanLine.rfind("IMPORT:", 0) == 0) {
-            string fname = cleanLine.substr(7);
+        bool isImport = (cleanLine.rfind("IMPORT:", 0) == 0);
+        bool isInclude = (cleanLine.rfind("INCLUDE:", 0) == 0);
+
+        if (isImport || isInclude) {
+            string fname = cleanLine.substr(isImport ? 7 : 8);
             fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
             fname.erase(fname.find_last_not_of(" \t\r\n\"'") + 1);
             
@@ -266,6 +269,10 @@ int main(int argc, char* argv[]) {
     }
 
     string inputFile = argv[1];
+    if (inputFile == "--version" || inputFile == "-v") {
+        cout << "Yori Compiler v4.4" << endl;
+        return 0;
+    }
     string outputName = "";
     string mode = "local"; 
     bool explicitLang = false;
