@@ -162,6 +162,36 @@ bool loadConfig(string mode) {
     } catch (...) { return false; }
 }
 
+// --- PREPROCESSOR ---
+string resolveImports(string code, string basePath) {
+    stringstream ss(code);
+    string line;
+    string processed;
+    while (getline(ss, line)) {
+        string cleanLine = line;
+        cleanLine.erase(0, cleanLine.find_first_not_of(" \t\r\n"));
+        
+        if (cleanLine.rfind("IMPORT:", 0) == 0) {
+            string fname = cleanLine.substr(7);
+            fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
+            fname.erase(fname.find_last_not_of(" \t\r\n\"'") + 1);
+            
+            fs::path path = basePath;
+            if (basePath.empty()) path = fname; else path /= fname;
+            
+            if (fs::exists(path)) {
+                ifstream imp(path);
+                if (imp.is_open()) {
+                    string content((istreambuf_iterator<char>(imp)), istreambuf_iterator<char>());
+                    processed += "\n// --- IMPORT: " + fname + " ---\n" + content + "\n// --- END IMPORT ---\n";
+                    log("INFO", "Imported module: " + fname);
+                }
+            } else log("WARN", "Missing import: " + fname);
+        } else processed += line + "\n";
+    }
+    return processed;
+}
+
 // --- AI CORE ---
 string callAI(string prompt) {
     string response;
@@ -290,7 +320,8 @@ int main(int argc, char* argv[]) {
     ifstream f(inputFile);
     if (!f.is_open()) { cerr << "Error: Input missing." << endl; return 1; }
     string rawCode((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
-    string finalLogic = rawCode; 
+    fs::path p(inputFile);
+    string finalLogic = resolveImports(rawCode, p.parent_path().string());
 
     string existingCode = "";
     if (updateMode) {
