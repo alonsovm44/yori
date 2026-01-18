@@ -88,7 +88,8 @@ map<string, LangProfile> LANG_DB = {
     {"ps1",  {"ps1", "PowerShell", ".ps1", "pwsh -v", "pwsh -Command Get-Date", false}},
     {"jl",   {"jl",  "Julia", ".jl",  "julia -v", "julia", false}},
     {"r",    {"r",   "R", ".R",       "R --version", "R CMD BATCH --no-save --no-restore", false}}, 
-    {"hs",   {"hs",  "Haskell", ".hs","ghc --version", "ghc -fno-code", false}}
+    {"hs",   {"hs",  "Haskell", ".hs","ghc --version", "ghc -fno-code", false}},
+    {"kt",   {"kt",  "Kotlin", ".kt", "kotlinc -version", "kotlinc", false}}
 };
 
 LangProfile CURRENT_LANG; 
