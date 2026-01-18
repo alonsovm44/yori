@@ -372,13 +372,17 @@ int main(int argc, char* argv[]) {
             
             try {
                 if (CURRENT_LANG.producesBinary) {
-                    fs::copy_file(tempBin, outputName, fs::copy_options::overwrite_existing);
-                    string srcName = stripExt(outputName) + CURRENT_LANG.extension;
-                    fs::copy_file(tempSrc, srcName, fs::copy_options::overwrite_existing);
+                    if (fs::exists(outputName)) fs::remove(outputName);
+                    fs::copy_file(tempBin, outputName);
                     cout << "   [Binary]: " << outputName << endl;
+                    
+                    string srcName = stripExt(outputName) + CURRENT_LANG.extension;
+                    if (fs::exists(srcName)) fs::remove(srcName);
+                    fs::copy_file(tempSrc, srcName);
                     cout << "   [Source]: " << srcName << endl;
                 } else {
-                    fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
+                    if (fs::exists(outputName)) fs::remove(outputName);
+                    fs::copy_file(tempSrc, outputName);
                     cout << "   [Script]: " << outputName << endl;
                 }
             } catch (fs::filesystem_error& e) {
