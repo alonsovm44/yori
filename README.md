@@ -4,12 +4,12 @@ The **Yori Compiler** is a meta-compilation tool designed to bridge the gap betw
 
 ---
 
-## 🚀 The Vision
+## The Vision
 Programming has traditionally required years of study to master syntax and memory management. **Yori** changes this paradigm by turning the developer into an **Architect**. You provide the "What," and the Yori Engine—powered by local and cloud-based AI—determines the "How," generating, verifying, and self-correcting code in **over 20 programming languages** until it produces a working result.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 * **Universal Polyglot Support**: Generate and validate code in 20+ languages including **C++, Python, Rust, Go, TypeScript, Zig, Java, C#, and Bash**.
 * **Natural Language to Code**: Compile `.yori` files containing descriptive logic directly into source code or executables.
@@ -25,7 +25,7 @@ Programming has traditionally required years of study to master syntax and memor
 
 ---
 
-## 🛠️ Technical Setup
+##  Technical Setup
 
 ### Prerequisites
 1.  **Yori Core**: The `yori.exe` executable.
