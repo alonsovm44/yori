@@ -50,8 +50,9 @@ string PROVIDER = "local";
 string API_KEY = "";
 string MODEL_ID = ""; 
 string API_URL = "";
-const int MAX_RETRIES = 5;
+const int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
+const string CURRENT_VERSION = "4.5.1";
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;
@@ -62,6 +63,7 @@ void initLogger() {
         auto t = time(nullptr);
         auto tm = *localtime(&t);
         logFile << "\n--- SESSION START (v4.5): " << put_time(&tm, "%Y-%m-%d %H:%M:%S") << " ---\n";
+        logFile << "\n--- SESSION START (v" << CURRENT_VERSION << "): " << put_time(&tm, "%Y-%m-%d %H:%M:%S") << " ---\n";
     }
 }
 
@@ -397,6 +399,7 @@ int main(int argc, char* argv[]) {
 
     if (argc < 2) {
         cout << "YORI v4.5 (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
+        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
         return 0;
     }
 
@@ -415,6 +418,72 @@ int main(int argc, char* argv[]) {
         else if (arg == "-dry-run") dryRun = true;
         else if (arg == "-verbose") VERBOSE_MODE = true;
         else if (arg == "-u" || arg == "--update") updateMode = true;
+        else if (arg == "--version") { cout << "Yori Compiler v" << CURRENT_VERSION << endl; return 0; }
+        else if (arg == "--clean") {
+            cout << "[CLEAN] Removing temporary build files..." << endl;
+            try {
+                if (fs::exists(".yori_build.cache")) {
+                    fs::remove(".yori_build.cache");
+                    cout << "   Removed .yori_build.cache" << endl;
+                }
+                for (const auto& entry : fs::directory_iterator(fs::current_path())) {
+                    if (entry.is_regular_file()) {
+                        string fname = entry.path().filename().string();
+                        if (fname.find("temp_build") == 0) {
+                            fs::remove(entry.path());
+                            cout << "   Removed " << fname << endl;
+                        }
+                    }
+                }
+            } catch (const exception& e) {
+                cerr << "[ERROR] Clean failed: " << e.what() << endl;
+            }
+            return 0;
+        }
+        else if (arg == "--init") {
+            cout << "[INIT] Creating project template..." << endl;
+            
+            if (!fs::exists("hello.yori")) {
+                ofstream f("hello.yori");
+                f << "// Welcome to Yori!\n";
+                f << "// This is a basic template.\n\n";
+                f << "PRINT(\"Hello, World!\")\n";
+                f.close();
+                cout << "   Created hello.yori" << endl;
+            } else {
+                cout << "   [SKIP] hello.yori already exists." << endl;
+            }
+
+            if (!fs::exists("config.json")) {
+                ofstream f("config.json");
+                f << "{\n    \"local\": {\n        \"model_id\": \"qwen2.5-coder:3b\",\n        \"api_url\": \"http://localhost:11434/api/generate\"\n    },\n    \"cloud\": {\n        \"api_key\": \"YOUR_API_KEY_HERE\",\n        \"model_id\": \"gemini-1.5-flash\"\n    },\n    \"toolchains\": {\n        \"cpp\": {\n            \"build_cmd\": \"g++ -std=c++17\"\n        }\n    }\n}\n";
+                f.close();
+                cout << "   Created config.json" << endl;
+            } else {
+                cout << "   [SKIP] config.json already exists." << endl;
+            }
+            return 0;
+        }
+        else if (arg == "--help" || arg == "-h") {
+            cout << "YORI Compiler v" << CURRENT_VERSION << "\n";
+            cout << "Usage: yori <source_files> [options]\n\n";
+            cout << "Options:\n";
+            cout << "  -o <file>       Specify output filename\n";
+            cout << "  -u, --update    Update mode (iterative development)\n";
+            cout << "  -cloud          Use cloud AI provider (Google Gemini)\n";
+            cout << "  -local          Use local AI provider (Ollama) [Default]\n";
+            cout << "  -dry-run        Show preprocessed code without compiling\n";
+            cout << "  -verbose        Enable verbose logging\n";
+            cout << "  --version       Show version information\n";
+            cout << "  --clean         Remove temporary build files\n";
+            cout << "  --init          Create a new project template\n";
+            cout << "  --help, -h      Show this help message\n\n";
+            cout << "Supported Languages (use flag to force, e.g. -cpp):\n";
+            for (const auto& [key, val] : LANG_DB) {
+                cout << "  -" << left << setw(6) << key << " : " << val.name << " (" << val.extension << ")\n";
+            }
+            return 0;
+        }
         else if (arg[0] == '-') {
             string langKey = arg.substr(1);
             if (LANG_DB.count(langKey)) { CURRENT_LANG = LANG_DB[langKey]; explicitLang = true; }
