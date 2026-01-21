@@ -349,5 +349,5 @@ if ($Mode -eq "minimal" -or (-not $installOllama -and -not $hasOllama)) {
 Write-Host ""
 Write-Host "Documentation: https://github.com/alonsovm44/yori" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Press Enter to exit..."
-Read-Host
+Write-Host 'Press Enter to exit...'
+$null = Read-Host
