@@ -1,3 +1,14 @@
+## Quick Install
+Quick Install Commands
+Linux/macOS
+bashcurl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash
+Or with wget:
+bashwget -qO- https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash
+Windows (PowerShell)
+powershellirm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex
+Or with shorter URL (if you setup a domain):
+powershellirm yori.dev/install.ps1 | iex
+
 ## Recent Breakthrough
 
 Yori has reached a major milestone: it can now **semantically include and orchestrate code written in any programming language** inside a single compilation pipeline. In practice, this means a Yori program can include a Python file (even using libraries like NumPy), express intent in natural language, and be compiled into a **native C executable** that runs successfully — without containers, manual FFI, or handwritten glue code. This demonstrates that Yori is not bound to any single language or runtime, but operates as a **universal, intent-driven semantic compiler**, capable of deciding *how* and *where* code should execute based purely on human intent.

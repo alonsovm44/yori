@@ -1,8 +1,0 @@
-IMPORT: "a.cpp"
-IMPORT: "b.py"
-IMPORT: "raylib.h"
-PRINT(oort(2))
-
-PRINT(zX6Ya(1,2,3))
-
-MakeWindow(800px,600px)
