@@ -82,7 +82,7 @@ Yori files support universal imports using IMPORT: keyword. Example:
 int function1(int x){
     return x + 6;
 }
-
+``````
 ````````b.py
 def function2(x):
     return x + 7
