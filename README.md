@@ -12,6 +12,13 @@ The **Yori Compiler** is a meta-compilation tool designed to bridge the gap betw
 
 ---
 
+## Quick Install (Windows)
+1. Go to Releases and download the latest release, unzip and run the [installer.ps1]
+2. To run the script right-click → Run with PowerShell
+3. Follow prompts (Ollama, model, compiler auto-setup)
+4. Double-click `Yori_Terminal.bat` to start compiling!
+
+
 ##  The Vision
 Programming has traditionally required years of study to master syntax and memory management. **Yori** changes this paradigm by turning the developer into an **Architect**. You provide the "What," and the Yori Engine—powered by local and cloud-based AI—determines the "How," generating, verifying, and self-correcting code in **over 20 programming languages** until it produces a working result.
 
