@@ -108,6 +108,15 @@ Yori now supports universal file compilation (4.5) like so
 //you could also transpile multiple files into a single file
 >yori a.py b.py c.py -o d.c -cloud
 ````
+## IMPROVE PERFORMANCE JUST WITH COMMENTS
+Compiler directives are universal and can be used in any language.
+if you have a python script (or any script) that needs a performance boost just add "#!!! improve performance" (or use the appropiate comment syntax with !!! flag) to tell the compiler what you want. Then you have two options
+````
+>yori myscript.py -o myscripy_boost.py -cloud
+````
+````Or
+yori myscript.py -o myapp_boost.exe -cpp -cloud
+````
  FAQ
  1. Do I need to install all 20 languages?
  A: No. If you try to build a Rust app but don't have rustc, Yori will alert you and ask if you want to proceed in "Blind Mode" (generate code without validation).
