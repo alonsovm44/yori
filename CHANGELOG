@@ -9,7 +9,7 @@ All notable changes in Yori are documented here
 
 ### Added
 
-1. Multi-file support: CLI now accepts multiple input files (e.g., yori main.cpp utils.py -o app.exe).
+1. Multi-file support: CLI now accepts multiple input files (e.g., yori main.cpp utils.py -o app.exe). 
 2. Error Memory: The compiler now "remembers" previous compilation errors within the session to prevent AI from repeating mistakes.
 3. Update Mode (-u): Re-implemented feature to update existing source code instead of generating from scratch.
 4. Explicit Import Context: Preprocessor now wraps imported code with clear markers (// >>> START MODULE...) for better AI context.
