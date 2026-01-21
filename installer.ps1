@@ -271,6 +271,7 @@ Write-Info "Creating terminal shortcut..."
 $yoriBin = "$root\bin"
 $mingwBin = "$root\tools\w64devkit\bin"
 
+# NOTA: Los @ deben estar al inicio de la linea sin espacios
 $batContent = @"
 @echo off
 title Yori Compiler Terminal
@@ -337,7 +338,7 @@ Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Yellow
 Write-Host "  1. Double-click 'Yori_Terminal.bat' to start"
 Write-Host "  2. Try: yori --init    (create example project)"
-Write-Host "  3. Try: yori hello.yori -o hello.exe -c"
+Write-Host "  3. Try: yori hello.yori -o hello.exe -cloud"
 
 if ($Mode -eq "minimal" -or (-not $installOllama -and -not $hasOllama)) {
     Write-Host ""
