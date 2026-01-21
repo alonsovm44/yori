@@ -61,6 +61,25 @@ cmd /k"
 
 Set-Content -Path "Yori_Terminal.bat" -Value $batContent
 
+# 5. ADD TO PATH PERMANENTLY
+Write-Host " Optional: Add Yori to PATH to run it from any terminal." -ForegroundColor Cyan
+$addToPath = Read-Host " Add to PATH? (Y/N)"
+if ($addToPath -eq 'Y' -or $addToPath -eq 'y') {
+    $scope = "User"
+    $currentPath = [Environment]::GetEnvironmentVariable("Path", $scope)
+    $newPath = $currentPath
+    
+    if ($newPath -notlike "*$yoriBin*") { $newPath += ";$yoriBin" }
+    if ($newPath -notlike "*$mingwBin*") { $newPath += ";$mingwBin" }
+    
+    if ($newPath -ne $currentPath) {
+        [Environment]::SetEnvironmentVariable("Path", $newPath, $scope)
+        Write-Host "   Success! Added to User PATH. Please restart your terminals." -ForegroundColor Green
+    } else {
+        Write-Host "   Already in PATH." -ForegroundColor Yellow
+    }
+}
+
 Write-Host "Installation Complete! Double-click 'Yori_Terminal.bat' to start." -ForegroundColor Green
 Write-Host "Press Enter to exit."
 Read-Host
