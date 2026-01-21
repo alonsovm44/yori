@@ -16,7 +16,6 @@ The **Yori Compiler** is a meta-compilation tool designed to bridge the gap betw
 1. Go to Releases and download the latest release, unzip and run the [installer.ps1]
 2. To run the script right-click → Run with PowerShell
 3. Follow prompts (Ollama, model, compiler auto-setup)
-4. Double-click `Yori_Terminal.bat` to start compiling!
 
 
 ##  The Vision
