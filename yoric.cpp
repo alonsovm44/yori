@@ -166,33 +166,67 @@ bool loadConfig(string mode) {
 }
 
 // --- PREPROCESSOR ---
-string resolveImports(string code, string basePath) {
+string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     stringstream ss(code);
     string line;
     string processed;
     while (getline(ss, line)) {
         string cleanLine = line;
-        cleanLine.erase(0, cleanLine.find_first_not_of(" \t\r\n"));
+        size_t first = cleanLine.find_first_not_of(" \t\r\n");
+        if (first == string::npos) {
+            processed += line + "\n";
+            continue;
+        }
+        cleanLine.erase(0, first);
         
-        bool isImport = (cleanLine.rfind("IMPORT:", 0) == 0);
-        bool isInclude = (cleanLine.rfind("INCLUDE:", 0) == 0);
-
-        if (isImport || isInclude) {
-            string fname = cleanLine.substr(isImport ? 7 : 8);
-            fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
-            fname.erase(fname.find_last_not_of(" \t\r\n\"'") + 1);
+        if (cleanLine.rfind("IMPORT:", 0) == 0) {
+            string fname = cleanLine.substr(7);
+            size_t q1 = fname.find_first_of("\"'");
+            size_t q2 = fname.find_last_of("\"'");
+            
+            if (q1 != string::npos && q2 != string::npos && q2 > q1) {
+                fname = fname.substr(q1 + 1, q2 - q1 - 1);
+            } else {
+                fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
+                size_t last = fname.find_last_not_of(" \t\r\n\"'");
+                if (last != string::npos) fname.erase(last + 1);
+            }
             
             fs::path path = basePath;
-            if (basePath.empty()) path = fname; else path /= fname;
+            path /= fname; // fs::path handles absolute paths in append correctly (if fname is absolute, it replaces path)
             
-            if (fs::exists(path)) {
-                ifstream imp(path);
-                if (imp.is_open()) {
-                    string content((istreambuf_iterator<char>(imp)), istreambuf_iterator<char>());
-                    processed += "\n// --- IMPORT: " + fname + " ---\n" + content + "\n// --- END IMPORT ---\n";
-                    log("INFO", "Imported module: " + fname);
+            try {
+                if (fs::exists(path)) {
+                    string absPath = fs::canonical(path).string();
+                    
+                    bool cycle = false;
+                    for(const auto& s : stack) if(s == absPath) cycle = true;
+                    
+                    if (cycle) {
+                        log("ERROR", "Circular import detected: " + fname);
+                        processed += "// [ERROR] Circular import: " + fname + "\n";
+                    } else {
+                        ifstream imp(path);
+                        if (imp.is_open()) {
+                            string content((istreambuf_iterator<char>(imp)), istreambuf_iterator<char>());
+                            stack.push_back(absPath);
+                            string nested = resolveImports(content, path.parent_path(), stack);
+                            stack.pop_back();
+                            processed += "\n// >>> IMPORT: " + fname + " <<<\n" + nested + "\n// <<< END IMPORT >>>\n";
+                            log("INFO", "Imported: " + fname);
+                        } else {
+                            log("ERROR", "Read failed: " + fname);
+                            processed += "// [ERROR] Read failed: " + fname + "\n";
+                        }
+                    }
+                } else {
+                    log("WARN", "File not found: " + fname);
+                    processed += "// [WARN] Missing import: " + fname + "\n";
                 }
-            } else log("WARN", "Missing import: " + fname);
+            } catch (const exception& e) {
+                log("ERROR", "Path error: " + string(e.what()));
+                processed += "// [ERROR] Path exception: " + string(e.what()) + "\n";
+            }
         } else processed += line + "\n";
     }
     return processed;
@@ -266,7 +300,7 @@ int main(int argc, char* argv[]) {
     initLogger(); // Start logging session
 
     if (argc < 2) {
-        cout << "Usage: yori <input.extension> [-o output.extension] [-cloud | -local] [-u]\nNote: Yori accepts any text file as input, it does not need to be a .yori file" << endl;
+        cout << "Usage: yori <input.extension> [-o output.extension] [-cloud | -local] [-u] [-dry-run]\nNote: Yori accepts any text file as input, it does not need to be a .yori file" << endl;
         return 0;
     }
 
@@ -275,6 +309,7 @@ int main(int argc, char* argv[]) {
     string mode = "local"; 
     bool explicitLang = false;
     bool updateMode = false;
+    bool dryRun = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -286,6 +321,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-local") mode = "local";
         else if (arg == "-u") updateMode = true;
         else if (arg == "-verbose" || arg == "-peek") VERBOSE_MODE = true;
+        else if (arg == "-dry-run") dryRun = true;
         else if (arg == "-o" && i+1 < argc) { outputName = argv[i+1]; i++; }
         else if (arg[0] == '-') {
             string cleanArg = arg.substr(1); 
@@ -335,7 +371,16 @@ int main(int argc, char* argv[]) {
     if (!f.is_open()) { cerr << "Error: Input missing." << endl; return 1; }
     string rawCode((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
     fs::path p(inputFile);
-    string finalLogic = resolveImports(rawCode, p.parent_path().string());
+    
+    vector<string> importStack;
+    try { if(fs::exists(p)) importStack.push_back(fs::canonical(p).string()); } catch(...) {}
+    
+    string finalLogic = resolveImports(rawCode, p.parent_path(), importStack);
+
+    if (dryRun) {
+        cout << finalLogic << endl;
+        return 0;
+    }
 
     // --- CACHING ---
     size_t currentHash = hash<string>{}(finalLogic + CURRENT_LANG.id + to_string(updateMode) + MODEL_ID);

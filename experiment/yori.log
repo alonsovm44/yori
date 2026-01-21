@@ -1,0 +1,37 @@
+
+--- SESSION START: 2026-01-20 04:38:47 ---
+[04:38:47] [CONFIG] Loaded profile: cloud (gemini-2.5-flash)
+[04:38:47] [INFO] Target: C++ | Output: montecarlo.exe
+[04:38:47] [GEN 1] Generating code...
+[04:38:55] [WARN] Rate limit hit. Waiting 30s...
+
+--- SESSION START: 2026-01-20 04:39:28 ---
+[04:39:28] [CONFIG] Loaded profile: local (qwen2.5-coder:3b)
+[04:39:28] [INFO] Target: C++ | Output: montecarlo.exe
+[04:39:29] [GEN 1] Generating code...
+[04:42:17] [SUCCESS] Build valid on Pass 1
+
+--- SESSION START: 2026-01-20 04:55:54 ---
+[04:55:54] [CONFIG] Loaded profile: local (qwen2.5-coder:3b)
+[04:55:54] [INFO] Target: C++ | Output: montecarlo.exe
+[04:55:54] [GEN 1] Generating code...
+[04:58:23] [FAIL] Compilation failed. Exit code: 1
+[04:58:23] [GEN 2] Generating code...
+[04:58:23] [EVOLUTION] Fixing error: temp_src.cpp: In function 'int main()':
+temp_src.cpp:23:25: error: unable to find numeric literal op...
+[05:00:09] [FAIL] Compilation failed. Exit code: 1
+[05:00:09] [GEN 3] Generating code...
+[05:00:09] [EVOLUTION] Fixing error: temp_src.cpp:29:1: error: stray '`' in program
+   29 | ```
+      | ^
+temp_src.cpp:29:2: error: stray...
+[05:03:53] [FAIL] Compilation failed. Exit code: 1
+[05:03:53] [GEN 4] Generating code...
+[05:03:53] [EVOLUTION] Fixing error: temp_src.cpp: In function 'int main()':
+temp_src.cpp:22:40: error: unable to find numeric literal op...
+
+--- SESSION START: 2026-01-20 18:45:06 ---
+[18:45:06] [CONFIG] Loaded profile: cloud (gemini-2.5-flash)
+[18:45:06] [INFO] Target: C | Output: mc.exe
+[18:45:06] [GEN 1] Generating code...
+[18:45:28] [SUCCESS] Build valid on Pass 1

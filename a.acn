@@ -1,0 +1,6 @@
+IMPORT: "a.cpp"
+IMPORT: "b.py"
+
+PRINT(oort(2))
+
+PRINT(zX6Ya(1,2,3))
