@@ -1,0 +1,12 @@
+PS C:\Users\diego\.projects\M-MACHINE> .\yori a.py b.cpp -o c.exe -c -cloud
+[CHECK] Toolchain for C...
+   [OK] Ready.
+   [Pass 1] Generating C...
+   Verifying...
+
+BUILD SUCCESSFUL: c.exe
+   [Binary]: c.exe
+PS C:\Users\diego\.projects\M-MACHINE> .\c
+hello from python!
+
+hello from c++!

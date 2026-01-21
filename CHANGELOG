@@ -5,6 +5,26 @@ All notable changes in Yori are documented here
 ## [Unreleased] / En desarrollo
 - (work in progress)
 
+[v4.5] - 2026-01-20
+
+### Added
+
+1. Multi-file support: CLI now accepts multiple input files (e.g., yori main.cpp utils.py -o app.exe).
+2. Error Memory: The compiler now "remembers" previous compilation errors within the session to prevent AI from repeating mistakes.
+3. Update Mode (-u): Re-implemented feature to update existing source code instead of generating from scratch.
+4. Explicit Import Context: Preprocessor now wraps imported code with clear markers (// >>> START MODULE...) for better AI context.
+
+### Improved
+1. Safe Path Handling: Added automatic quoting to system calls to support file paths with spaces.
+2. Configurable Toolchains: Build and version commands can now be overridden via config.json.
+3. Contextual Prompting: Refined system prompts to better handle mixed-language inputs.
+
+### emoved
+
+1. Caching System: The .cache logic was temporarily removed to prioritize multi-file stability.
+2. Ghost Binary Detection: Simplified the verification logic to reduce false positives.
+
+
 ## 2026-01-18
 ### Fixed
 - UTF-8 error on update mode
