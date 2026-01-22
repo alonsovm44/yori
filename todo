@@ -1,12 +1,12 @@
 # fixes
-for 4,4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# for 4,4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 1. fix -u flag not working (done)
 
 3. fix compiler not overwriting previous source and excecutable when updating (done)
 4. add caching system (done)
 5. add preprocessor INCLUDE feature
 
-for 4.5 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# for 4.5 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 1. add modular imports from any text file source e.g
 	IMPORT: "header.acn"
@@ -26,7 +26,8 @@ The preprocessor looks for those files and pastes them in the file calling those
 	>yori source.txt -o myapp.exe main.cpp graphics.cpp mylib.cpp graphics.hpp mylib.hpp -cloud -cpp
 	
 -change query prompt from "expert c++ engineer" to "expert programmer"
-for 5.0 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+# for 5.0 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 1. yori recognizes when user wants to use it for transpilation,
 >yori mysource.x -o mytarget.y -local -y (currently this makes a binary file with extension .y, we want it to be a text file)
@@ -44,7 +45,7 @@ yori build --profile quick       # compilación rápida, menos checks
  Developer Experience
 4. Interactive Repair Mode
 yori fix main.cpp --interactive
-# AI sugiere 3 opciones de fix, usuario elige
+AI sugiere 3 opciones de fix, usuario elige
 
 5. Dependency Resolver Mejorado
 
@@ -58,5 +59,5 @@ yori init --template cli-tool-rust
 yori init --template data-pipeline-python
 
 7. Explain Mode
-bashyori explain output.cpp
-# AI documenta cada función/clase generada, genera un el mismo archivo pero con comentarios
+yori explain output.cpp
+ AI documenta cada función/clase generada, genera un el mismo archivo pero con comentarios
