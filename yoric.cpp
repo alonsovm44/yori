@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v4.6 (Multi-File + Config Commands + Update Mode)
+/* YORI COMPILER (yori.exe) - v4.7.1 (Modular Cloud Provider + OpenAI Auto-Config)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS]
    Features: 
      - Multi-file ingestion
@@ -8,8 +8,9 @@
      - Update Mode (-u) for iterative dev
      - Fail-Fast on Missing Dependencies
      - AI Dependency Hinter (Interactive)
-     - Pre-Flight Dependency Check (New! - Saves Tokens)
-     - CLI Config Management (New!)
+     - Pre-Flight Dependency Check
+     - CLI Config Management
+     - Modular Provider System (Support for Groq, DeepSeek, OpenAI, etc.)
 */
 
 #include <iostream>
@@ -48,12 +49,13 @@ namespace fs = std::filesystem;
 
 // --- CONFIGURATION ---
 string PROVIDER = "local"; 
+string PROTOCOL = "ollama"; // 'google', 'openai', 'ollama'
 string API_KEY = "";
 string MODEL_ID = ""; 
 string API_URL = "";
 const int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "4.6.0"; // Version bump for Config features
+const string CURRENT_VERSION = "4.7.1"; 
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;
@@ -76,26 +78,22 @@ void log(string level, string message) {
     if (VERBOSE_MODE) cout << "   [" << level << "] " << message << endl;
 }
 
-// --- CONFIG MANAGEMENT (NEW) ---
+// --- CONFIG MANAGEMENT ---
 void updateConfigFile(string key, string value) {
     string configPath = "config.json";
     json j;
     
-    // Load existing or start fresh
     if (fs::exists(configPath)) {
         ifstream i(configPath);
-        if (i.is_open()) {
-            try { i >> j; } catch(...) {} 
-        }
+        if (i.is_open()) { try { i >> j; } catch(...) {} }
     }
     
-    // Ensure basic structure exists
     if (!j.contains("cloud")) j["cloud"] = json::object();
     if (!j.contains("local")) j["local"] = json::object();
 
     if (key == "api-key") {
         j["cloud"]["api_key"] = value;
-        cout << "[CONFIG] Updated cloud.api_key successfully." << endl;
+        cout << "[CONFIG] Updated cloud.api_key." << endl;
     } else if (key == "model-cloud") {
          j["cloud"]["model_id"] = value;
          cout << "[CONFIG] Updated cloud.model_id to " << value << endl;
@@ -105,8 +103,17 @@ void updateConfigFile(string key, string value) {
     } else if (key == "url-local") {
          j["local"]["api_url"] = value;
          cout << "[CONFIG] Updated local.api_url to " << value << endl;
+    } else if (key == "url-cloud") { // NEW
+         j["cloud"]["api_url"] = value;
+         cout << "[CONFIG] Updated cloud.api_url to " << value << endl;
+    } else if (key == "cloud-protocol") { // NEW
+         if (value != "google" && value != "openai") {
+             cout << "[ERROR] Protocol must be 'google' or 'openai'." << endl; return;
+         }
+         j["cloud"]["protocol"] = value;
+         cout << "[CONFIG] Updated cloud.protocol to " << value << endl;
     } else {
-        cout << "[ERROR] Unknown config key. Supported: api-key, model-cloud, model-local, url-local" << endl;
+        cout << "[ERROR] Unknown config key." << endl;
         return;
     }
 
@@ -116,7 +123,7 @@ void updateConfigFile(string key, string value) {
 }
 
 void openApiKeyPage() {
-    cout << "[INFO] Opening Google AI Studio to generate key..." << endl;
+    cout << "[INFO] Opening Google AI Studio (Default provider)..." << endl;
     #ifdef _WIN32
     system("start https://aistudio.google.com/app/apikey");
     #elif __APPLE__
@@ -191,18 +198,15 @@ string getExt(string fname) {
     return (lastindex == string::npos) ? "" : fname.substr(lastindex); 
 }
 
-// Check if error is related to missing files/libs (Fail Fast Strategy)
 bool isFatalError(const string& errMsg) {
     string lowerErr = errMsg;
     transform(lowerErr.begin(), lowerErr.end(), lowerErr.begin(), ::tolower);
-    
     if (lowerErr.find("fatal error") != string::npos) return true;
     if (lowerErr.find("no such file") != string::npos) return true;
     if (lowerErr.find("file not found") != string::npos) return true;
     if (lowerErr.find("cannot open source file") != string::npos) return true;
     if (lowerErr.find("module not found") != string::npos) return true;
     if (lowerErr.find("importerror") != string::npos) return true; 
-    
     return false;
 }
 
@@ -211,7 +215,12 @@ bool loadConfig(string mode) {
     string configPath = "config.json";
     ifstream f(configPath);
     if (!f.is_open()) {
-        if(mode == "local") API_URL = "http://localhost:11434/api/generate";
+        if(mode == "local") {
+            API_URL = "http://localhost:11434/api/generate";
+            PROTOCOL = "ollama";
+        } else {
+            PROTOCOL = "google"; // Default fallback
+        }
         return true; 
     }
 
@@ -220,16 +229,31 @@ bool loadConfig(string mode) {
         if (j.contains(mode)) {
             json profile = j[mode];
             PROVIDER = mode;
-            if (mode == "cloud") API_KEY = profile.value("api_key", "");
+            
+            // Generic Load
             MODEL_ID = profile.value("model_id", "gemini-pro");
-            if (mode == "local") API_URL = profile.value("api_url", "http://localhost:11434/api/generate");
+            
+            // Protocol Detection
+            if (profile.contains("protocol")) PROTOCOL = profile["protocol"];
+            else PROTOCOL = (mode == "cloud") ? "google" : "ollama"; // Defaults
+
+            // URL Detection with Defaults
+            if (profile.contains("api_url")) {
+                API_URL = profile["api_url"];
+            } else {
+                if (PROTOCOL == "google") API_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL_ID + ":generateContent";
+                else if (PROTOCOL == "openai") API_URL = "https://api.openai.com/v1/chat/completions";
+                else if (mode == "local") API_URL = "http://localhost:11434/api/generate";
+            }
+
+            // API Key
+            if (mode == "cloud") API_KEY = profile.value("api_key", "");
         }
         if (j.contains("toolchains")) {
             for (auto& [key, val] : j["toolchains"].items()) {
                 if (LANG_DB.count(key)) {
                     if (val.contains("build_cmd")) LANG_DB[key].buildCmd = val["build_cmd"];
                     if (val.contains("version_cmd")) LANG_DB[key].versionCmd = val["version_cmd"];
-                    log("CONFIG", "Overrode toolchain for: " + key);
                 }
             }
         }
@@ -259,18 +283,14 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
                 size_t last = fname.find_last_not_of(" \t\r\n\"'");
                 if (last != string::npos) fname.erase(last + 1);
             }
-            
             fs::path path = basePath / fname;
-            
             try {
                 if (fs::exists(path)) {
                     string absPath = fs::canonical(path).string();
                     bool cycle = false;
                     for(const auto& s : stack) if(s == absPath) cycle = true;
-                    
                     if (cycle) {
                         processed += "// [ERROR] CYCLIC IMPORT DETECTED: " + fname + "\n";
-                        log("ERROR", "Circular import: " + fname);
                     } else {
                         ifstream imp(path);
                         if (imp.is_open()) {
@@ -299,25 +319,43 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
 // --- AI CORE ---
 string callAI(string prompt) {
     string response;
+    string url = API_URL;
+    
+    // Dynamic Construction of Request
+    json body;
+    string extraHeaders = "";
+
+    if (PROTOCOL == "google") {
+        // Legacy Google format
+        body["contents"][0]["parts"][0]["text"] = prompt;
+        if (url.find("?key=") == string::npos) url += "?key=" + API_KEY;
+    } 
+    else if (PROTOCOL == "openai") {
+        // Standard OpenAI format (Works for Groq, DeepSeek, Mistral, etc)
+        body["model"] = MODEL_ID;
+        body["messages"][0]["role"] = "user";
+        body["messages"][0]["content"] = prompt;
+        extraHeaders = " -H \"Authorization: Bearer " + API_KEY + "\"";
+    }
+    else { 
+        // Ollama / Default Local
+        body["model"] = MODEL_ID;
+        body["prompt"] = prompt;
+        body["stream"] = false; 
+    }
+
     for(int i=0; i<3; i++) {
-        json body; string url;
-        if (PROVIDER == "local") { 
-            body["model"]=MODEL_ID; body["prompt"]=prompt; body["stream"]=false; url=API_URL; 
-        } else { 
-            body["contents"][0]["parts"][0]["text"]=prompt; 
-            url="https://generativelanguage.googleapis.com/v1beta/models/"+MODEL_ID+":generateContent?key="+API_KEY; 
-        }
-        
         ofstream file("request_temp.json"); 
         file << body.dump(-1, ' ', false, json::error_handler_t::replace); 
         file.close();
         
-        string cmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @request_temp.json \"" + url + "\"";
+        string cmd = "curl -s -X POST -H \"Content-Type: application/json\"" + extraHeaders + " -d @request_temp.json \"" + url + "\"";
+        
         CmdResult res = execCmd(cmd);
         response = res.output;
         remove("request_temp.json");
         
-        if (PROVIDER == "cloud" && response.find("429") != string::npos) { 
+        if (PROTOCOL == "google" && response.find("429") != string::npos) { 
              log("WARN", "API 429 Rate Limit. Backoff...");
              this_thread::sleep_for(chrono::seconds(5 * (i+1)));
              continue; 
@@ -331,9 +369,28 @@ string extractCode(string jsonResponse) {
     try {
         json j = json::parse(jsonResponse);
         string raw = "";
+        
         if (j.contains("error")) return "ERROR: " + j["error"].dump();
-        if (PROVIDER == "local") { if (j.contains("response")) raw = j["response"]; } 
-        else { if (j.contains("candidates")) raw = j["candidates"][0]["content"]["parts"][0]["text"]; }
+        
+        // Extraction logic based on Protocol/Structure
+        if (j.contains("choices") && j["choices"].size() > 0) {
+            // OpenAI / Groq standard
+            if (j["choices"][0].contains("message"))
+                raw = j["choices"][0]["message"]["content"];
+            else if (j["choices"][0].contains("text"))
+                raw = j["choices"][0]["text"];
+        }
+        else if (j.contains("candidates") && j["candidates"].size() > 0) {
+            // Google Gemini
+             raw = j["candidates"][0]["content"]["parts"][0]["text"];
+        }
+        else if (j.contains("response")) {
+            // Ollama
+            raw = j["response"];
+        } 
+        else {
+            return "UNKNOWN_RESPONSE_FORMAT: " + jsonResponse.substr(0, 100);
+        }
         
         size_t start = raw.find("```"); 
         if (start == string::npos) return raw; 
@@ -352,8 +409,10 @@ void explainFatalError(const string& errorMsg) {
     string advice = callAI(prompt);
     try {
         json j = json::parse(advice);
+        // Reuse extractCode logic simplified for plain text
         if (j.contains("candidates")) advice = j["candidates"][0]["content"]["parts"][0]["text"];
         else if (j.contains("response")) advice = j["response"];
+        else if (j.contains("choices")) advice = j["choices"][0]["message"]["content"];
     } catch(...) {}
     cout << "> Proposed solution: " << advice << endl;
 }
@@ -449,7 +508,12 @@ int main(int argc, char* argv[]) {
     string cmd = argv[1];
     if (cmd == "config") {
         if (argc < 4) {
-            cout << "Usage: yori config <key> <value>\nKeys: api-key, model-cloud, model-local, url-local" << endl;
+            cout << "Usage: yori config <key> <value>\n";
+            cout << "Keys:\n";
+            cout << "  api-key         : Your API Key\n";
+            cout << "  cloud-protocol  : 'openai' or 'google'\n";
+            cout << "  url-cloud       : Full API endpoint URL\n";
+            cout << "  model-cloud     : Model name (e.g., 'llama3-70b-8192')\n";
             return 1;
         }
         updateConfigFile(argv[2], argv[3]);
@@ -492,25 +556,20 @@ int main(int argc, char* argv[]) {
         }
         else if (arg == "--init") {
             cout << "[INIT] Creating project template..." << endl;
-            
             if (!fs::exists("hello.yori")) {
                 ofstream f("hello.yori");
-                f << "// Welcome to Yori!\n";
-                f << "// This is a basic template.\n\n";
-                f << "PRINT(\"Hello, World!\")\n";
+                f << "// Welcome to Yori!\nPRINT(\"Hello, World!\")\n";
                 f.close();
-                cout << "   Created hello.yori" << endl;
-            } else {
-                cout << "   [SKIP] hello.yori already exists." << endl;
             }
 
             if (!fs::exists("config.json")) {
                 ofstream f("config.json");
-                f << "{\n    \"local\": {\n        \"model_id\": \"qwen2.5-coder:3b\",\n        \"api_url\": \"http://localhost:11434/api/generate\"\n    },\n    \"cloud\": {\n        \"api_key\": \"YOUR_API_KEY_HERE\",\n        \"model_id\": \"gemini-1.5-flash\"\n    },\n    \"toolchains\": {\n        \"cpp\": {\n            \"build_cmd\": \"g++ -std=c++17\"\n        }\n    }\n}\n";
+                f << "{\n";
+                f << "    \"local\": {\n        \"model_id\": \"qwen2.5-coder:3b\",\n        \"api_url\": \"http://localhost:11434/api/generate\"\n    },\n";
+                f << "    \"cloud\": {\n        \"protocol\": \"openai\",\n        \"api_key\": \"YOUR_KEY\",\n        \"model_id\": \"llama3-70b-8192\",\n        \"api_url\": \"https://api.groq.com/openai/v1/chat/completions\"\n    }\n";
+                f << "}\n";
                 f.close();
-                cout << "   Created config.json" << endl;
-            } else {
-                cout << "   [SKIP] config.json already exists." << endl;
+                cout << "   Created config.json (Defaulted to OpenAI/Groq format)" << endl;
             }
             return 0;
         }
@@ -520,25 +579,17 @@ int main(int argc, char* argv[]) {
             cout << "       yori <command> [args]\n\n";
             
             cout << "Commands:\n";
-            cout << "  config <key> <val> Update configuration (keys: api-key, model-cloud, etc.)\n";
+            cout << "  config <key> <val> Update configuration\n";
+            cout << "    keys: api-key, cloud-protocol, url-cloud, model-cloud\n";
             cout << "  get-key            Open browser to generate a new Google AI API Key\n\n";
 
             cout << "Options:\n";
             cout << "  -o <file>       Specify output filename\n";
             cout << "  -u, --update    Update mode (iterative development)\n";
-            cout << "  -cloud          Use cloud AI provider (Google Gemini)\n";
+            cout << "  -cloud          Use cloud AI provider\n";
             cout << "  -local          Use local AI provider (Ollama) [Default]\n";
-            cout << "  -dry-run        Show preprocessed code without compiling\n";
-            cout << "  -verbose        Enable verbose logging\n";
-            cout << "  --version       Show version information\n";
             cout << "  --clean         Remove temporary build files\n";
             cout << "  --init          Create a new project template\n";
-            cout << "  --help, -h      Show this help message\n\n";
-            
-            cout << "Supported Languages (use flag to force, e.g. -cpp):\n";
-            for (const auto& [key, val] : LANG_DB) {
-                cout << "  -" << left << setw(6) << key << " : " << val.name << " (" << val.extension << ")\n";
-            }
             return 0;
         }
         else if (arg[0] == '-') {
@@ -659,14 +710,9 @@ int main(int argc, char* argv[]) {
             std::error_code ec;
             bool saveSuccess = false;
 
-            // --- CRITICAL FIX: Robust Save Loop ---
             for(int i=0; i<5; i++) {
                 try {
-                    // Try to delete target first. 
-                    if (fs::exists(outputName)) {
-                        fs::remove(outputName);
-                    }
-
+                    if (fs::exists(outputName)) fs::remove(outputName);
                     if (CURRENT_LANG.producesBinary) {
                         fs::copy_file(tempBin, outputName, fs::copy_options::overwrite_existing);
                         cout << "   [Binary]: " << outputName << endl;
@@ -678,26 +724,19 @@ int main(int argc, char* argv[]) {
                     saveSuccess = true;
                     break;
                 } catch (const fs::filesystem_error& e) {
-                    if (i < 4) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(250 * (i + 1)));
-                    } else {
-                        ec = e.code();
-                    }
+                    if (i < 4) std::this_thread::sleep_for(std::chrono::milliseconds(250 * (i + 1)));
+                    else ec = e.code();
                 }
             }
-            // --------------------------------------
 
             if (!saveSuccess) {
                 cerr << "[ERROR] Failed to save final output. File may be locked." << endl;
-                cerr << "   Details: " << ec.message() << endl;
                 cout << "   Your build is preserved at: " << (CURRENT_LANG.producesBinary ? tempBin : tempSrc) << endl;
                 return 1;
             }
             
             if (fs::exists(tempSrc)) fs::remove(tempSrc, ec);
-
-            ofstream cFile(cacheFile);
-            cFile << currentHash;
+            ofstream cFile(cacheFile); cFile << currentHash;
             return 0;
         } else {
             string err = build.output;

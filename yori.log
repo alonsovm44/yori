@@ -124,3 +124,59 @@
 --- SESSION START (v4.6.0): 2026-01-22 03:51:40 ---
 [03:51:41] [WARN] API 429 Rate Limit. Backoff...
 [03:51:47] [WARN] API 429 Rate Limit. Backoff...
+
+--- SESSION START (v4.7.1): 2026-01-22 04:20:57 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:21:25 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:21:55 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:22:12 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:22:35 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:22:49 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:23:00 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:23:59 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:25:42 ---
+[04:25:44] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:44] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:45] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:46] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:47] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:47] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:48] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:49] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:50] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:50] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:51] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:51] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:52] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:52] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:25:53] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+
+--- SESSION START (v4.7.1): 2026-01-22 04:26:35 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:26:37 ---
+[04:26:37] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:38] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:39] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:39] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:40] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:40] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:41] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:41] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:41] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:42] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:43] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:43] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:44] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:45] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+[04:26:45] [API_FAIL] ERROR: {"code":"insufficient_quota","message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.","param":null,"type":"insufficient_quota"}
+
+--- SESSION START (v4.7.1): 2026-01-22 04:27:27 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:27:35 ---
