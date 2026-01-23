@@ -1,10 +1,9 @@
-/* YORI COMPILER (yori.exe) - v4.9.4 (Diff Command Added)
-   Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS]
+/* YORI COMPILER (yori.exe) - v5.1.0 (Full Semantic Guard)
+   Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS] "*Custom instructions..."
    Features: 
-     - Multi-file ingestion
-     - Smart Import Resolution
-     - AI Error Memory
-     - Configurable Toolchains
+     - Semantic Transpilation (Bans wrappers like Python.h or system("node"))
+     - Multi-file ingestion & Smart Import Resolution
+     - AI Error Memory & Configurable Toolchains
      - Update Mode (-u) for iterative dev
      - Fail-Fast on Missing Dependencies
      - AI Dependency Hinter (Interactive)
@@ -16,6 +15,7 @@
      - Explain Command (Auto-Documentation with Language Support)
      - Fix Command (Natural Language Repair)
      - Diff Command (Semantic Change Analysis)
+     - Custom Instruction Injection (*Prefix)
 */
 
 #include <iostream>
@@ -60,7 +60,7 @@ string MODEL_ID = "";
 string API_URL = "";
 const int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "4.9.4"; 
+const string CURRENT_VERSION = "5.1.0"; 
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;
@@ -107,6 +107,7 @@ string getExt(string fname) {
     return (lastindex == string::npos) ? "" : fname.substr(lastindex); 
 }
 
+// [UPDATED v5.1] Enhanced error detection for lazy transpilation
 bool isFatalError(const string& errMsg) {
     string lowerErr = errMsg;
     transform(lowerErr.begin(), lowerErr.end(), lowerErr.begin(), ::tolower);
@@ -116,6 +117,11 @@ bool isFatalError(const string& errMsg) {
     if (lowerErr.find("cannot open source file") != string::npos) return true;
     if (lowerErr.find("module not found") != string::npos) return true;
     if (lowerErr.find("importerror") != string::npos) return true; 
+    if (lowerErr.find("undefined reference") != string::npos && lowerErr.find("main") != string::npos) return true; 
+    // AI Laziness Detection
+    if (lowerErr.find("python.h") != string::npos) return true;
+    if (lowerErr.find("jni.h") != string::npos) return true;
+    if (lowerErr.find("node.h") != string::npos) return true;
     return false;
 }
 
@@ -214,8 +220,17 @@ string callAI(string prompt) {
     } 
     else if (PROTOCOL == "openai") {
         body["model"] = MODEL_ID;
-        body["messages"][0]["role"] = "user";
-        body["messages"][0]["content"] = prompt;
+        
+        // [FIX] Handle APIFreeLLM divergence 
+        // User reports "Missing required parameter: message" with /api/v1/chat endpoint.
+        // This implies a non-standard OpenAI structure. Trying simple string parameter.
+        if (API_URL.find("apifreellm.com") != string::npos) {
+            body["message"] = prompt; 
+        } else {
+            body["messages"][0]["role"] = "user";
+            body["messages"][0]["content"] = prompt;
+        }
+        
         extraHeaders = " -H \"Authorization: Bearer " + API_KEY + "\"";
     }
     else { 
@@ -240,6 +255,11 @@ string callAI(string prompt) {
 
         if (response.find("401 Unauthorized") != string::npos) return "ERROR: 401 Unauthorized (Check API Key)";
         if (response.find("404 Not Found") != string::npos) return "ERROR: 404 Not Found (Check URL)";
+
+        // DEBUG: Print body on specific API error to help diagnosis
+        if (response.find("Missing required parameter") != string::npos) {
+             cout << "\n[DEBUG] API rejected payload. Sending: " << body.dump() << endl;
+        }
 
         if (PROTOCOL == "google" && response.find("429") != string::npos) { 
              log("WARN", "API 429 Rate Limit. Backoff...");
@@ -549,7 +569,7 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
+        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u] \"*Custom Instructions\"" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
@@ -711,7 +731,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    // DIFF COMMAND (New!)
+    // DIFF COMMAND
     if (cmd == "diff") {
         if (argc < 4) {
             cout << "Usage: yori diff <fileA> <fileB> [-cloud/-local] [language]" << endl;
@@ -757,7 +777,6 @@ int main(int argc, char* argv[]) {
         cout << "[AI] Analyzing changes (" << mode << ")..." << endl;
         string res = callAI(prompt.str());
         // For diff, we don't strict extract code blocks as the output IS the report (text)
-        // But some models might wrap MD in blocks. Check briefly.
         string report = res;
         try {
             json j = json::parse(res);
@@ -779,6 +798,7 @@ int main(int argc, char* argv[]) {
     vector<string> inputFiles; 
     string outputName = "";
     string mode = "local"; 
+    string customInstructions = ""; 
     bool explicitLang = false;
     bool dryRun = false;
     bool updateMode = false; 
@@ -826,7 +846,6 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         else if (arg == "--help" || arg == "-h") {
-            // Already handled at start, just redundancy check
             return 0;
         }
         else if (arg[0] == '-') {
@@ -834,7 +853,13 @@ int main(int argc, char* argv[]) {
             if (LANG_DB.count(langKey)) { CURRENT_LANG = LANG_DB[langKey]; explicitLang = true; }
         }
         else {
-            inputFiles.push_back(arg); 
+            // Instruction Detection
+            if (arg.size() > 0 && arg[0] == '*') {
+                customInstructions = arg.substr(1);
+                cout << "[INFO] Custom instructions detected." << endl;
+            } else {
+                inputFiles.push_back(arg); 
+            }
         }
     }
 
@@ -877,7 +902,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n"));
+    size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n") + customInstructions);
     string cacheFile = ".yori_build.cache"; 
 
     if (!updateMode && !dryRun && fs::exists(cacheFile) && fs::exists(outputName)) {
@@ -886,7 +911,6 @@ int main(int argc, char* argv[]) {
         if (cFile >> storedHash && storedHash == currentHash) {
             cout << "[CACHE] No changes detected. Using existing build." << endl;
             if (runOutput) {
-                // ... same run logic as below ...
                 #ifdef _WIN32
                 system(outputName.c_str());
                 #else
@@ -922,11 +946,21 @@ int main(int argc, char* argv[]) {
         cout << "   [Pass " << gen << "] Generating " << CURRENT_LANG.name << "..." << endl;
         
         stringstream prompt;
-        prompt << "ROLE: Expert " << CURRENT_LANG.name << " compiler/transpiler.\n";
-        prompt << "STRICT RULES:\n";
-        prompt << "1. DO NOT SIMULATE or MOCK missing libraries. If a library is imported, MUST include the actual header.\n";
-        prompt << "2. If a dependency is missing, let the compiler fail.\n";
+        // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
+        prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
+        prompt << "TASK: Convert the LOGIC of the provided source files into a SINGLE, RUNNABLE " << CURRENT_LANG.name << " file.\n";
         
+        prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
+        prompt << "1. SEMANTIC REWRITE ONLY: Do NOT use wrappers like <Python.h>, <node.h>, <jni.h> or system() calls to run the code.\n";
+        prompt << "2. NATIVE IMPLEMENTATION: You MUST manually re-implement the logic of Python/JS/TS functions using standard " << CURRENT_LANG.name << " libraries (e.g., std::vector, std::map, std::string).\n";
+        prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
+        prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
+        prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
+        
+        if (!customInstructions.empty()) {
+            prompt << "\n[USER INSTRUCTIONS - HIGHEST PRIORITY]:\n" << customInstructions << "\n";
+        }
+
         if (updateMode && !existingCode.empty()) {
             prompt << "TASK: UPDATE existing code.\n";
             prompt << "\n--- [OLD CODE] ---\n" << existingCode << "\n--- [END OLD CODE] ---\n";
@@ -1024,14 +1058,20 @@ int main(int argc, char* argv[]) {
             cout << "   [!] Error (Line " << gen << "): " << err.substr(0, 50) << "..." << endl;
             log("FAIL", "Pass " + to_string(gen) + " failed.");
 
-            if (isFatalError(err)) {
+            // [UPDATED v5.1] Catch literal translation attempts
+            if (err.find("python.h") != string::npos || err.find("Python.h") != string::npos) {
+                 errorHistory += "\nFATAL: You are trying to include Python.h. STOP. Rewrite the code using native C++ std:: libraries only.\n";
+            } else {
+                 errorHistory += "\n--- Error Pass " + to_string(gen) + " ---\n" + err;
+            }
+
+            if (isFatalError(err) && gen > 3) {
                 cerr << "\n[FATAL ERROR] Missing dependency/file detected. Aborting." << endl;
                 cout << "   [?] Analyze fatal error with AI? [y/N]: ";
                 char ans; cin >> ans;
                 if (ans == 'y' || ans == 'Y') explainFatalError(err);
                 break; 
             }
-            errorHistory += "\n--- Error Pass " + to_string(gen) + " ---\n" + err;
         }
     }
 
