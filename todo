@@ -20,11 +20,7 @@ The preprocessor looks for those files and pastes them in the file calling those
 2. add multiple file compilation and linkinng e.g
 
 	>yori source1.txt source2.yori source3.acn -o output.exe -cpp -cloud
-
-3. add multiple file output e.g
-	
-	>yori source.txt -o myapp.exe main.cpp graphics.cpp mylib.cpp graphics.hpp mylib.hpp -cloud -cpp
-	
+		
 -change query prompt from "expert c++ engineer" to "expert programmer"
 
 # for 5.0 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
