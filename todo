@@ -26,8 +26,11 @@ The preprocessor looks for those files and pastes them in the file calling those
 # for 5.0 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 1. yori recognizes when user wants to use it for transpilation,
->yori mysource.x -o mytarget.y -local -y (currently this makes a binary file with extension .y, we want it to be a text file)
->tree shaking
+>yori mysource.x -o mytarget.y -local -y  (currently this makes a binary file with extension .y, we want it to be a text file)
+	>add a -t flag for transpilation
+
+
+1.5 tree shaking
 
 2.Si falla provider primario → intenta secundario automáticamente
 Load balancing entre múltiples API keys
@@ -57,3 +60,10 @@ yori init --template data-pipeline-python
 7. Explain Mode
 yori explain output.cpp
  AI documenta cada función/clase generada, genera un el mismo archivo pero con comentarios
+
+8. Diff semantic
+yori diff <fileA.ext> <fileB.ext>
+	AI hace un archivo .md donde explica los cambios entre ambas versiones (que cambió, dónde), con un resumen al comienzo de la esencia del cambio
+
+9. yori config max-tries <number> 
+^^ configura cuantas retries maximo acepta el sistema
