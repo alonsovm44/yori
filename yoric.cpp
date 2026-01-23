@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v4.9.3 (Explain Command with Multi-Language Support)
+/* YORI COMPILER (yori.exe) - v4.9.4 (Diff Command Added)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS]
    Features: 
      - Multi-file ingestion
@@ -15,6 +15,7 @@
      - Smart Binary vs Source Output Detection
      - Explain Command (Auto-Documentation with Language Support)
      - Fix Command (Natural Language Repair)
+     - Diff Command (Semantic Change Analysis)
 */
 
 #include <iostream>
@@ -59,7 +60,7 @@ string MODEL_ID = "";
 string API_URL = "";
 const int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "4.9.3"; 
+const string CURRENT_VERSION = "4.9.4"; 
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;
@@ -552,6 +553,7 @@ int main(int argc, char* argv[]) {
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
+        cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
         return 0;
     }
 
@@ -706,6 +708,70 @@ int main(int argc, char* argv[]) {
         out.close();
         
         cout << "[SUCCESS] Documentation generated: " << docFile << endl;
+        return 0;
+    }
+
+    // DIFF COMMAND (New!)
+    if (cmd == "diff") {
+        if (argc < 4) {
+            cout << "Usage: yori diff <fileA> <fileB> [-cloud/-local] [language]" << endl;
+            return 1;
+        }
+        string fileA = argv[2];
+        string fileB = argv[3];
+        string mode = "local";
+        string language = "English";
+
+        for(int i=4; i<argc; i++) {
+            string arg = argv[i];
+            if (arg == "-cloud") mode = "cloud";
+            else if (arg == "-local") mode = "local";
+            else language = arg;
+        }
+
+        if (!loadConfig(mode)) return 1;
+
+        if (!fs::exists(fileA) || !fs::exists(fileB)) {
+            cout << "[ERROR] One or both files not found." << endl;
+            return 1;
+        }
+
+        cout << "[DIFF] Comparing " << fileA << " vs " << fileB << "..." << endl;
+        
+        ifstream fa(fileA), fb(fileB);
+        string contentA((istreambuf_iterator<char>(fa)), istreambuf_iterator<char>());
+        string contentB((istreambuf_iterator<char>(fb)), istreambuf_iterator<char>());
+        fa.close(); fb.close();
+
+        stringstream prompt;
+        prompt << "ROLE: Expert Software Auditor.\n";
+        prompt << "TASK: Compare two source files and generate a semantic diff report in " << language << ".\n";
+        prompt << "REPORT FORMAT:\n";
+        prompt << "1. Brief Summary of changes.\n";
+        prompt << "2. Changed Functions (What changed and where).\n";
+        prompt << "3. Additional Observations (Potential bugs, improvements).\n";
+        prompt << "RETURN: Only the report in Markdown format.\n\n";
+        prompt << "--- FILE A (" << fileA << ") ---\n" << contentA << "\n";
+        prompt << "\n--- FILE B (" << fileB << ") ---\n" << contentB << "\n";
+
+        cout << "[AI] Analyzing changes (" << mode << ")..." << endl;
+        string res = callAI(prompt.str());
+        // For diff, we don't strict extract code blocks as the output IS the report (text)
+        // But some models might wrap MD in blocks. Check briefly.
+        string report = res;
+        try {
+            json j = json::parse(res);
+            if (j.contains("choices")) report = j["choices"][0]["message"]["content"];
+            else if (j.contains("candidates")) report = j["candidates"][0]["content"]["parts"][0]["text"];
+            else if (j.contains("response")) report = j["response"];
+        } catch(...) {}
+
+        string outName = fs::path(fileA).stem().string() + "_" + fs::path(fileB).stem().string() + "_diff_report.md";
+        ofstream out(outName);
+        out << report;
+        out.close();
+
+        cout << "[SUCCESS] Report generated: " << outName << endl;
         return 0;
     }
 
