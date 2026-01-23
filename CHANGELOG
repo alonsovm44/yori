@@ -20,7 +20,9 @@ All notable changes in Yori are documented here
 8. Added explain commands   
     >yori explain <path> [-cloud | -local] [language]
 In the language flag the user is meant to indicate which natural language (spanish, english, chineese, etc)
-
+9. Added diff command
+    >yori diff <pathA> <pathB> [-cloud | -local] [language]
+It generates a markdown document explaining what changed between file versions, which entities changed, a summary of the changes in general, it generates the expaination in the indicated language
 
 [v4.5.1] 2026-01-20
 
