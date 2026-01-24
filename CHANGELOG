@@ -23,6 +23,10 @@ In the language flag the user is meant to indicate which natural language (spani
 9. Added diff command
     >yori diff <pathA> <pathB> [-cloud | -local] [language]
 It generates a markdown document explaining what changed between file versions, which entities changed, a summary of the changes in general, it generates the expaination in the indicated language
+[v5.1.2] 2026-01-23
+
+1. Added sos command to ask model help based on a prompt 
+    >yori sos [language] [-local | -cloud] "prompt"
 
 [v4.5.1] 2026-01-20
 
