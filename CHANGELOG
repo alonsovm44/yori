@@ -5,12 +5,12 @@ All notable changes in Yori are documented here
 ## [Unreleased] / En desarrollo
 - (work in progress)
 
-[v4.9.1] 2026-01-22
-
 [v5.1.2] 2026-01-23
 
 1. Added sos command to ask model help based on a prompt 
     >yori sos [language] [-local | -cloud] "prompt"
+[v4.9.1] 2026-01-22
+
 ### Added
 1. Config menu command
 2. selection menu for local models
