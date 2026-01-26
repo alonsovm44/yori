@@ -133,7 +133,7 @@ struct LangProfile {
 };
 
 map<string, LangProfile> LANG_DB = {
-    {"cpp",  {"cpp", "C++", ".cpp", "g++ --version", "g++ -std=c++17", true}},
+    {"cpp",  {"cpp", "C++", ".cpp", "g++ --version", "g++ -std=gnu++17", true}},
     {"c",    {"c",   "C",   ".c",   "gcc --version", "gcc", true}},
     {"rust", {"rust","Rust",".rs",  "rustc --version", "rustc", true}}, 
     {"go",   {"go",  "Go",  ".go",  "go version", "go build", true}},
@@ -1046,6 +1046,16 @@ int main(int argc, char* argv[]) {
         ofstream out(tempSrc); out << code; out.close();
 
         cout << "   Verifying..." << endl;
+        
+        // [FIX] Eliminar binario previo para evitar errores de bloqueo/permisos en Windows
+        if (CURRENT_LANG.producesBinary && fs::exists(tempBin)) {
+            try { fs::remove(tempBin); } catch(...) {
+                // Si está bloqueado, esperar un poco y reintentar
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                try { fs::remove(tempBin); } catch(...) {}
+            }
+        }
+
         string valCmd = CURRENT_LANG.buildCmd + " \"" + tempSrc + "\"";
         if (CURRENT_LANG.producesBinary) valCmd += " -o \"" + tempBin + "\""; 
         
@@ -1114,12 +1124,14 @@ int main(int argc, char* argv[]) {
             return 0;
         } else {
             string err = build.output;
-            cout << "   [!] Error (Line " << gen << "): " << err.substr(0, 50) << "..." << endl;
+            cout << "   [!] Error (Line " << gen << "): " << err.substr(0, 300) << "..." << endl;
             log("FAIL", "Pass " + to_string(gen) + " failed.");
 
             // [UPDATED v5.1] Catch literal translation attempts
             if (err.find("python.h") != string::npos || err.find("Python.h") != string::npos) {
                  errorHistory += "\nFATAL: You are trying to include Python.h. STOP. Rewrite the code using native C++ std:: libraries only.\n";
+            } else if (err.find("print(") != string::npos || err.find("import ") != string::npos || err.find("def ") != string::npos) {
+                 errorHistory += "\nFATAL: It seems you wrote Python code instead of C++. STOP. Return ONLY valid C++ code.\n";
             } else {
                  errorHistory += "\n--- Error Pass " + to_string(gen) + " ---\n" + err;
             }
