@@ -7,9 +7,9 @@
 ## Quick Install
 Quick Install Commands
 Linux/macOS
-<curl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash>
+<curl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/linux_installer.sh | bash>
 Or with wget:
-<wget -qO- https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash>
+<wget -qO- https://raw.githubusercontent.com/alonsovm44/yori/master/linux_installer.sh | bash>
 Windows (PowerShell)
 <irm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex>
 Or with shorter URL (if you setup a domain):
