@@ -61,7 +61,7 @@ string MODEL_ID = "";
 string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "5.2.0"; 
+const string CURRENT_VERSION = "5.2.5"; 
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;

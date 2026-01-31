@@ -4,8 +4,19 @@ All notable changes in Yori are documented here
 
 ## [Unreleased] / En desarrollo
 - (work in progress)
+-tree shaking
+-simple IR 
 
-[v5.1.2] 2026-01-23
+[5.2.5] 2026-01-30
+1. Added see command to yori
+    >yori config see 
+    (prints the current configuration)
+
+2. Changed the get-key logic to open the browser in freeapillm.com instead of google
+3. added max retries command
+    >yori config max-retries <value>
+    (this configures the amount of iterations permitted for the healing loop)
+[v5.1.0] 2026-01-23
 
 1. Added sos command to ask model help based on a prompt 
     >yori sos [language] [-local | -cloud] "prompt"
