@@ -59,7 +59,7 @@ string PROTOCOL = "ollama"; // 'google', 'openai', 'ollama'
 string API_KEY = "";
 string MODEL_ID = ""; 
 string API_URL = "";
-const int MAX_RETRIES = 15;
+int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 const string CURRENT_VERSION = "5.2.0"; 
 
@@ -176,6 +176,9 @@ bool loadConfig(string mode) {
 
     try {
         json j = json::parse(f);
+        if (j.contains("max_retries")) {
+            MAX_RETRIES = j["max_retries"];
+        }
         if (j.contains(mode)) {
             json profile = j[mode];
             PROVIDER = mode;
@@ -363,6 +366,16 @@ void updateConfigFile(string key, string value) {
          }
          j["cloud"]["protocol"] = value;
          cout << "[CONFIG] Updated cloud.protocol to " << value << endl;
+    } else if (key == "max-retries") {
+         try {
+             int v = stoi(value);
+             if (v > 0) {
+                 j["max_retries"] = v;
+                 cout << "[CONFIG] Updated max_retries to " << v << endl;
+             } else {
+                 cout << "[ERROR] max-retries must be > 0." << endl; return;
+             }
+         } catch (...) { cout << "[ERROR] Invalid number." << endl; return; }
     } else {
         cout << "[ERROR] Unknown config key." << endl;
         return;
@@ -382,6 +395,9 @@ void showConfig() {
     try {
         ifstream i(configPath); json j; i >> j;
         cout << "\n--- YORI CONFIGURATION ---\n";
+        
+        if (j.contains("max_retries")) cout << "  Max Retries: " << j["max_retries"] << endl;
+        else cout << "  Max Retries: 15 (Default)" << endl;
         
         if (j.contains("cloud")) {
             cout << "[CLOUD]\n";
@@ -621,6 +637,7 @@ int main(int argc, char* argv[]) {
             cout << "       yori config model-local (Interactive selection)\n\n";
             cout << "Keys:\n";
             cout << "  api-key         : Set Cloud API Key\n";
+            cout << "  max-retries     : Set Max Retries (Default: 15)\n";
             cout << "  cloud-protocol  : Set protocol ('openai', 'google', 'ollama')\n";
             cout << "  model-cloud     : Set Cloud Model ID\n";
             cout << "  url-cloud       : Set Cloud API URL\n";
