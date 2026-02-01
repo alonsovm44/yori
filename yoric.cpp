@@ -63,7 +63,7 @@ int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 const string CURRENT_VERSION = "5.3"; 
 
-enum class GenMode { CODE, MODEL_3D };
+enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
 
 // --- LOGGER SYSTEM ---
@@ -165,8 +165,12 @@ map<string, LangProfile> MODEL_DB = {
     {"obj",  {"obj",  "Wavefront OBJ", ".obj",  "", "", false}},
     {"stl",  {"stl",  "STL (ASCII)",   ".stl",  "", "", false}},
     {"ply",  {"ply",  "PLY (ASCII)",   ".ply",  "", "", false}},
-    {"gltf", {"gltf", "glTF (JSON)",   ".gltf", "", "", false}},
-    {"svg",  {"svg",  "SVG (Vector)",  ".svg",  "", "", false}}
+    {"gltf", {"gltf", "glTF (JSON)",   ".gltf", "", "", false}}
+};
+
+map<string, LangProfile> IMAGE_DB = {
+    {"svg",  {"svg",  "SVG (Vector)",  ".svg",  "", "", false}},
+    {"eps",  {"eps",  "PostScript",    ".eps",  "", "", false}}
 };
 
 LangProfile CURRENT_LANG; 
@@ -613,14 +617,22 @@ bool preFlightCheck(const set<string>& deps) {
 }
 
 void selectTarget() {
-    cout << "\n[?] Ambiguous target. Select " << (CURRENT_MODE == GenMode::CODE ? "Language" : "Format") << ":\n";
+    string label = "Language";
+    if (CURRENT_MODE == GenMode::MODEL_3D) label = "3D Format";
+    if (CURRENT_MODE == GenMode::IMAGE) label = "Image Format";
+
+    cout << "\n[?] Ambiguous target. Select " << label << ":\n";
     int i = 1; vector<string> keys;
-    auto& db = (CURRENT_MODE == GenMode::CODE) ? LANG_DB : MODEL_DB;
-    for(auto const& [key, val] : db) keys.push_back(key);
-    for(const auto& k : keys) { cout << i++ << ". " << db[k].name << " "; if(i%4==0) cout<<endl;}
+    
+    const auto* db = &LANG_DB;
+    if (CURRENT_MODE == GenMode::MODEL_3D) db = &MODEL_DB;
+    else if (CURRENT_MODE == GenMode::IMAGE) db = &IMAGE_DB;
+
+    for(auto const& [key, val] : *db) keys.push_back(key);
+    for(const auto& k : keys) { cout << i++ << ". " << db->at(k).name << " "; if(i%4==0) cout<<endl;}
     cout << "\n> "; int c; cin >> c; 
-    if(c>=1 && c<=keys.size()) CURRENT_LANG = db[keys[c-1]];
-    else CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : MODEL_DB["obj"];
+    if(c>=1 && c<=keys.size()) CURRENT_LANG = db->at(keys[c-1]);
+    else CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : (CURRENT_MODE == GenMode::MODEL_3D ? MODEL_DB["obj"] : IMAGE_DB["svg"]);
 }
 
 // --- MAIN ---
@@ -629,7 +641,7 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-3d] [-u] \"*Custom Instructions\"" << endl;
+        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-3d/-img] [-u] \"*Custom Instructions\"" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
@@ -945,6 +957,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-k" || arg == "--keep") keepSource = true;
         else if (arg == "-t" || arg == "--transpile") transpileMode = true;
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
+        else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
         else if (arg == "--version") { cout << "Yori Compiler v" << CURRENT_VERSION << endl; return 0; }
         else if (arg == "--clean") {
@@ -981,6 +994,7 @@ int main(int argc, char* argv[]) {
             string langKey = arg.substr(1);
             if (LANG_DB.count(langKey)) { CURRENT_LANG = LANG_DB[langKey]; explicitLang = true; }
             else if (MODEL_DB.count(langKey)) { CURRENT_LANG = MODEL_DB[langKey]; explicitLang = true; CURRENT_MODE = GenMode::MODEL_3D; }
+            else if (IMAGE_DB.count(langKey)) { CURRENT_LANG = IMAGE_DB[langKey]; explicitLang = true; CURRENT_MODE = GenMode::IMAGE; }
         }
         else {
             // Instruction Detection
@@ -998,7 +1012,7 @@ int main(int argc, char* argv[]) {
 
     if (!explicitLang) {
         if (outputName.empty()) {
-             CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : MODEL_DB["obj"]; 
+             CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : (CURRENT_MODE == GenMode::MODEL_3D ? MODEL_DB["obj"] : IMAGE_DB["svg"]); 
         } else {
             string ext = getExt(outputName);
             bool found = false;
@@ -1008,6 +1022,11 @@ int main(int argc, char* argv[]) {
             if (!found) {
                 for (auto const& [key, val] : MODEL_DB) {
                     if (val.extension == ext) { CURRENT_LANG = val; explicitLang=true; found=true; CURRENT_MODE = GenMode::MODEL_3D; break; }
+                }
+            }
+            if (!found) {
+                for (auto const& [key, val] : IMAGE_DB) {
+                    if (val.extension == ext) { CURRENT_LANG = val; explicitLang=true; found=true; CURRENT_MODE = GenMode::IMAGE; break; }
                 }
             }
             if (!explicitLang) selectTarget();
@@ -1021,8 +1040,10 @@ int main(int argc, char* argv[]) {
         if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
             cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
         } else cout << "   [OK] Ready." << endl;
-    } else {
+    } else if (CURRENT_MODE == GenMode::MODEL_3D) {
         cout << "[MODE] 3D Generation (" << CURRENT_LANG.name << ")" << endl;
+    } else {
+        cout << "[MODE] Image Generation (" << CURRENT_LANG.name << ")" << endl;
     }
 
     string aggregatedContext = "";
@@ -1098,10 +1119,14 @@ int main(int argc, char* argv[]) {
             prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
             prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
             prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
-        } else {
+        } else if (CURRENT_MODE == GenMode::MODEL_3D) {
             prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
             prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the description provided in the input files.\n";
             prompt << "CONSTRAINTS: Ensure valid syntax for " << CURRENT_LANG.extension << ". Output ONLY the file content.\n";
+        } else {
+            prompt << "ROLE: Expert Vector Graphics Artist & Technical Illustrator.\n";
+            prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the visual description.\n";
+            prompt << "CONSTRAINTS: Ensure valid syntax for " << CURRENT_LANG.extension << ". Output ONLY the file content (e.g. <svg>...</svg>).\n";
         }
         
         if (!customInstructions.empty()) {
@@ -1133,10 +1158,21 @@ int main(int argc, char* argv[]) {
 
         ofstream out(tempSrc); out << code; out.close();
 
-        if (CURRENT_MODE == GenMode::MODEL_3D) {
-            cout << "[SUCCESS] 3D Model generated: " << outputName << endl;
-            fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
-            fs::remove(tempSrc);
+        if (CURRENT_MODE == GenMode::MODEL_3D || CURRENT_MODE == GenMode::IMAGE) {
+            cout << "[SUCCESS] Asset generated: " << outputName << endl;
+            bool saved = false;
+            for(int i=0; i<5; i++) {
+                try {
+                    if (fs::exists(outputName)) fs::remove(outputName);
+                    fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
+                    saved = true; break;
+                } catch (...) { std::this_thread::sleep_for(std::chrono::milliseconds(200)); }
+            }
+            if (!saved) {
+                cerr << "[ERROR] Could not save " << outputName << ". File might be locked." << endl;
+                return 1;
+            }
+            std::error_code ec; fs::remove(tempSrc, ec);
             return 0;
         }
 
