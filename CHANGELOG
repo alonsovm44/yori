@@ -5,7 +5,16 @@ All notable changes in Yori are documented here
 ## [Unreleased] / En desarrollo
 - (work in progress)
 -tree shaking
--simple IR 
+-simple IR
+
+[5.3] 2026-01-31 Don Bosco's day
+1. added -3D command to support making of 3D files from gen.ai, currently supported files are
+    -obj
+    -stl
+    -ply
+    -gltf
+    -svg
+>yori inputfile.ext -o output.ext2 -computing_mode -3d "*instructions"
 
 [5.2.5] 2026-01-30
 1. Added see command to yori

@@ -63,6 +63,9 @@ int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 const string CURRENT_VERSION = "5.2.5"; 
 
+enum class GenMode { CODE, MODEL_3D };
+GenMode CURRENT_MODE = GenMode::CODE;
+
 // --- LOGGER SYSTEM ---
 ofstream logFile;
 
@@ -156,6 +159,14 @@ map<string, LangProfile> LANG_DB = {
     {"zig",  {"zig", "Zig", ".zig", "zig version", "zig build-exe", true}},
     {"nim",  {"nim", "Nim", ".nim", "nim --version", "nim c", true}},
     {"r",    {"r",   "R",   ".r",   "R --version", "Rscript", false}}
+};
+
+map<string, LangProfile> MODEL_DB = {
+    {"obj",  {"obj",  "Wavefront OBJ", ".obj",  "", "", false}},
+    {"stl",  {"stl",  "STL (ASCII)",   ".stl",  "", "", false}},
+    {"ply",  {"ply",  "PLY (ASCII)",   ".ply",  "", "", false}},
+    {"gltf", {"gltf", "glTF (JSON)",   ".gltf", "", "", false}},
+    {"svg",  {"svg",  "SVG (Vector)",  ".svg",  "", "", false}}
 };
 
 LangProfile CURRENT_LANG; 
@@ -601,14 +612,15 @@ bool preFlightCheck(const set<string>& deps) {
     return true;
 }
 
-void selectLanguage() {
-    cout << "\n[?] Ambiguous target. Select Language:\n";
+void selectTarget() {
+    cout << "\n[?] Ambiguous target. Select " << (CURRENT_MODE == GenMode::CODE ? "Language" : "Format") << ":\n";
     int i = 1; vector<string> keys;
-    for(auto const& [key, val] : LANG_DB) keys.push_back(key);
-    for(const auto& k : keys) { cout << i++ << ". " << LANG_DB[k].name << " "; if(i%4==0) cout<<endl;}
+    auto& db = (CURRENT_MODE == GenMode::CODE) ? LANG_DB : MODEL_DB;
+    for(auto const& [key, val] : db) keys.push_back(key);
+    for(const auto& k : keys) { cout << i++ << ". " << db[k].name << " "; if(i%4==0) cout<<endl;}
     cout << "\n> "; int c; cin >> c; 
-    if(c>=1 && c<=keys.size()) CURRENT_LANG = LANG_DB[keys[c-1]];
-    else CURRENT_LANG = LANG_DB["cpp"];
+    if(c>=1 && c<=keys.size()) CURRENT_LANG = db[keys[c-1]];
+    else CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : MODEL_DB["obj"];
 }
 
 // --- MAIN ---
@@ -617,7 +629,7 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u] \"*Custom Instructions\"" << endl;
+        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-3d] [-u] \"*Custom Instructions\"" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
@@ -932,6 +944,8 @@ int main(int argc, char* argv[]) {
         else if (arg == "-run" || arg == "--run") runOutput = true;
         else if (arg == "-k" || arg == "--keep") keepSource = true;
         else if (arg == "-t" || arg == "--transpile") transpileMode = true;
+        else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
+        else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
         else if (arg == "--version") { cout << "Yori Compiler v" << CURRENT_VERSION << endl; return 0; }
         else if (arg == "--clean") {
             cout << "[CLEAN] Removing temporary build files..." << endl;
@@ -966,6 +980,7 @@ int main(int argc, char* argv[]) {
         else if (arg[0] == '-') {
             string langKey = arg.substr(1);
             if (LANG_DB.count(langKey)) { CURRENT_LANG = LANG_DB[langKey]; explicitLang = true; }
+            else if (MODEL_DB.count(langKey)) { CURRENT_LANG = MODEL_DB[langKey]; explicitLang = true; CURRENT_MODE = GenMode::MODEL_3D; }
         }
         else {
             // Instruction Detection
@@ -983,22 +998,32 @@ int main(int argc, char* argv[]) {
 
     if (!explicitLang) {
         if (outputName.empty()) {
-             CURRENT_LANG = LANG_DB["cpp"]; 
+             CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : MODEL_DB["obj"]; 
         } else {
             string ext = getExt(outputName);
+            bool found = false;
             for (auto const& [key, val] : LANG_DB) {
-                if (val.extension == ext) { CURRENT_LANG = val; explicitLang=true; break; }
+                if (val.extension == ext) { CURRENT_LANG = val; explicitLang=true; found=true; CURRENT_MODE = GenMode::CODE; break; }
             }
-            if (!explicitLang) selectLanguage();
+            if (!found) {
+                for (auto const& [key, val] : MODEL_DB) {
+                    if (val.extension == ext) { CURRENT_LANG = val; explicitLang=true; found=true; CURRENT_MODE = GenMode::MODEL_3D; break; }
+                }
+            }
+            if (!explicitLang) selectTarget();
         }
     }
 
     if (outputName.empty()) outputName = stripExt(inputFiles[0]) + CURRENT_LANG.extension;
     
-    cout << "[CHECK] Toolchain for " << CURRENT_LANG.name << "..." << endl;
-    if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
-        cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
-    } else cout << "   [OK] Ready." << endl;
+    if (CURRENT_MODE == GenMode::CODE) {
+        cout << "[CHECK] Toolchain for " << CURRENT_LANG.name << "..." << endl;
+        if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
+            cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
+        } else cout << "   [OK] Ready." << endl;
+    } else {
+        cout << "[MODE] 3D Generation (" << CURRENT_LANG.name << ")" << endl;
+    }
 
     string aggregatedContext = "";
     vector<string> stack;
@@ -1061,16 +1086,23 @@ int main(int argc, char* argv[]) {
         cout << "   [Pass " << gen << "] Generating " << CURRENT_LANG.name << "..." << endl;
         
         stringstream prompt;
-        // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
-        prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
-        prompt << "TASK: Convert the LOGIC of the provided source files into a SINGLE, RUNNABLE " << CURRENT_LANG.name << " file.\n";
         
-        prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
-        prompt << "1. SEMANTIC REWRITE ONLY: Do NOT use wrappers like <Python.h>, <node.h>, <jni.h> or system() calls to run the code.\n";
-        prompt << "2. NATIVE IMPLEMENTATION: You MUST manually re-implement the logic of Python/JS/TS functions using standard " << CURRENT_LANG.name << " libraries (e.g., std::vector, std::map, std::string).\n";
-        prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
-        prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
-        prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
+        if (CURRENT_MODE == GenMode::CODE) {
+            // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
+            prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
+            prompt << "TASK: Convert the LOGIC of the provided source files into a SINGLE, RUNNABLE " << CURRENT_LANG.name << " file.\n";
+            
+            prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
+            prompt << "1. SEMANTIC REWRITE ONLY: Do NOT use wrappers like <Python.h>, <node.h>, <jni.h> or system() calls to run the code.\n";
+            prompt << "2. NATIVE IMPLEMENTATION: You MUST manually re-implement the logic of Python/JS/TS functions using standard " << CURRENT_LANG.name << " libraries (e.g., std::vector, std::map, std::string).\n";
+            prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
+            prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
+            prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
+        } else {
+            prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
+            prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the description provided in the input files.\n";
+            prompt << "CONSTRAINTS: Ensure valid syntax for " << CURRENT_LANG.extension << ". Output ONLY the file content.\n";
+        }
         
         if (!customInstructions.empty()) {
             prompt << "\n[USER INSTRUCTIONS - HIGHEST PRIORITY]:\n" << customInstructions << "\n";
@@ -1081,7 +1113,7 @@ int main(int argc, char* argv[]) {
             prompt << "\n--- [OLD CODE] ---\n" << existingCode << "\n--- [END OLD CODE] ---\n";
             prompt << "\n--- [NEW INPUTS] ---\n" << aggregatedContext << "\n--- [END NEW INPUTS] ---\n";
         } else {
-            prompt << "TASK: Create SINGLE RUNNABLE " << CURRENT_LANG.name << " file.\n";
+            prompt << "TASK: Create SINGLE " << CURRENT_LANG.name << " file.\n";
             prompt << "\n--- INPUT SOURCES ---\n" << aggregatedContext << "\n--- END SOURCES ---\n";
         }
         if (!errorHistory.empty()) prompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
@@ -1100,6 +1132,13 @@ int main(int argc, char* argv[]) {
         }
 
         ofstream out(tempSrc); out << code; out.close();
+
+        if (CURRENT_MODE == GenMode::MODEL_3D) {
+            cout << "[SUCCESS] 3D Model generated: " << outputName << endl;
+            fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
+            fs::remove(tempSrc);
+            return 0;
+        }
 
         cout << "   Verifying..." << endl;
         
