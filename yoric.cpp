@@ -61,7 +61,7 @@ string MODEL_ID = "";
 string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "5.3"; 
+const string CURRENT_VERSION = "5.4"; 
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
