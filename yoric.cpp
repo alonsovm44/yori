@@ -158,7 +158,27 @@ map<string, LangProfile> LANG_DB = {
     {"dart", {"dart","Dart",".dart","dart --version", "dart compile exe", true}},
     {"zig",  {"zig", "Zig", ".zig", "zig version", "zig build-exe", true}},
     {"nim",  {"nim", "Nim", ".nim", "nim --version", "nim c", true}},
-    {"r",    {"r",   "R",   ".r",   "R --version", "Rscript", false}}
+    {"r",    {"r",   "R",   ".r",   "R --version", "Rscript", false}},
+    {"html", {"html", "HTML", ".html", "", "", false}},
+    {"css",  {"css",  "CSS",  ".css",  "", "", false}},
+    {"sql",  {"sql",  "SQL",  ".sql",  "", "", false}},
+    {"xml",  {"xml",  "XML",  ".xml",  "", "", false}},
+    {"yaml", {"yaml", "YAML", ".yaml", "", "", false}},
+    {"json", {"json", "JSON", ".json", "", "", false}},
+    {"md",   {"md",   "Markdown", ".md", "", "", false}},
+    {"ps1",  {"ps1", "PowerShell", ".ps1", "pwsh -v", "pwsh -c", false}},
+    {"bat",  {"bat", "Batch", ".bat", "cmd /?", "cmd /c", false}},
+    {"vue",  {"vue", "Vue", ".vue", "", "", false}},
+    {"jsx",  {"jsx", "React (JSX)", ".jsx", "", "", false}},
+    {"tsx",  {"tsx", "React (TSX)", ".tsx", "", "", false}},
+    {"htm",  {"htm", "HTML", ".html", "", "", false}},
+    {"clj",  {"clj", "Clojure", ".clj", "clojure -h", "", false}},
+    {"ex",   {"ex",  "Elixir",  ".ex",  "elixir -v", "elixirc", false}},
+    {"erl",  {"erl", "Erlang",  ".erl", "erl -version", "erlc", true}},
+    {"fs",   {"fs",  "F#",      ".fs",  "dotnet --version", "dotnet build", true}},
+    {"vb",   {"vb",  "VB.NET",  ".vb",  "dotnet --version", "dotnet build", true}},
+    {"groovy",{"groovy","Groovy",".groovy","groovy -v", "groovyc", false}},
+    {"acn",  {"acn", "Acorn",   ".acn", "", "", false}}
 };
 
 map<string, LangProfile> MODEL_DB = {
@@ -1037,7 +1057,9 @@ int main(int argc, char* argv[]) {
     
     if (CURRENT_MODE == GenMode::CODE) {
         cout << "[CHECK] Toolchain for " << CURRENT_LANG.name << "..." << endl;
-        if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
+        if (CURRENT_LANG.versionCmd.empty()) {
+            cout << "   [INFO] No toolchain required." << endl;
+        } else if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
             cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
         } else cout << "   [OK] Ready." << endl;
     } else if (CURRENT_MODE == GenMode::MODEL_3D) {
@@ -1117,7 +1139,9 @@ int main(int argc, char* argv[]) {
             prompt << "1. SEMANTIC REWRITE ONLY: Do NOT use wrappers like <Python.h>, <node.h>, <jni.h> or system() calls to run the code.\n";
             prompt << "2. NATIVE IMPLEMENTATION: You MUST manually re-implement the logic of Python/JS/TS functions using standard " << CURRENT_LANG.name << " libraries (e.g., std::vector, std::map, std::string).\n";
             prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
-            prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
+            if (!CURRENT_LANG.buildCmd.empty()) {
+                prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
+            }
             prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
         } else if (CURRENT_MODE == GenMode::MODEL_3D) {
             prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
@@ -1187,10 +1211,14 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        string valCmd = CURRENT_LANG.buildCmd + " \"" + tempSrc + "\"";
-        if (CURRENT_LANG.producesBinary) valCmd += " -o \"" + tempBin + "\""; 
-        
-        CmdResult build = execCmd(valCmd);
+        CmdResult build;
+        if (CURRENT_LANG.buildCmd.empty()) {
+            build.exitCode = 0;
+        } else {
+            string valCmd = CURRENT_LANG.buildCmd + " \"" + tempSrc + "\"";
+            if (CURRENT_LANG.producesBinary) valCmd += " -o \"" + tempBin + "\""; 
+            build = execCmd(valCmd);
+        }
         
         if (build.exitCode == 0) {
             cout << "\nBUILD SUCCESSFUL: " << outputName << endl;
