@@ -1,8 +1,37 @@
+# Yori Compiler
+
+The **Yori Compiler** is a meta-compilation tool designed to bridge the gap between high-level human intent and machine execution. Its mission is to make programming accessible to everyone by allowing software to be built using natural language blueprints. It can also produce 3D object files from pseudocode or plain text description as well as vector images, such as graphs.
+
+---
+
+## Manual install (Windows)
+1. Go to Releases and download the latest release, unzip and run the [installer.ps1]
+2. To run the script right-click → Run with PowerShell
+3. Follow prompts (Ollama, model, compiler auto-setup)
+
+
+##  The Vision
+Programming has traditionally required years of study to master syntax and memory management. Yori aims to lower the entry barrier of software engineering so a broader audience can access computational resources for their professional fields.  
+
 # Yori is best meant for
-- Coding professors
-- Gamedev indie (multilingual builds and prototypes fast)
-- Data scientists (C perf + Python ML → 1 exe)
-- Juniors (understand without pain)
+
+- **Software developers** who want to prototype an MVP fast and better, from weeks to days or hours.
+- **CS professors and CS101 students** who want to exercise computational thinking without wrestling syntax again.
+- **Domain professionals** (physicists, biologists, economists) who need to simulate systems but don't understand language syntax—Yori lets them code in their domain vocabulary and transpile their code to working python scripts or native c++ executables.
+- **Indie gamedevs** building multilingual prototypes and rapid iteration builds.
+- **Data scientists** needing Python ML models packaged as single standalone executables.
+- **Junior developers** who want to understand systems without syntax pain.
+- **Product managers** specifying features that auto-compile to working demos for stakeholder validation.
+- **DevOps engineers** generating infrastructure-as-code and deployment configs from high-level intent.
+- **UX/Design teams** creating functional prototypes to validate interaction flows before frontend dev.
+- **Hardware engineers** who need embedded firmware prototypes without toolchain setup.
+- **Financial analysts** building risk models, dashboards, and trading algorithms without learning Python/R.
+- **Marketers** generating landing pages, A/B tests, and conversion funnels as standalone deploys.
+- **Open source maintainers** rapidly scaffolding new features, APIs, or CLIs for contributor feedback.
+- **Technical writers** embedding working code examples directly in documentation that auto-updates.
+- **CEO/Founders** sketching SaaS ideas that become shippable MVPs for investor demos.
+
+---
 
 ## Quick Install
 Quick Install Commands
@@ -67,28 +96,7 @@ yori hello.yori -o hello.exe -c
 # Run it
 ./hello.exe
 ```
-## Recent Breakthrough
 
-Yori has reached a major milestone: it can now **semantically include and orchestrate code written in any programming language** inside a single compilation pipeline. In practice, this means a Yori program can include a Python file (even using libraries like NumPy), express intent in natural language, and be compiled into a **native C executable** that runs successfully — without containers, manual FFI, or handwritten glue code. This demonstrates that Yori is not bound to any single language or runtime, but operates as a **universal, intent-driven semantic compiler**, capable of deciding *how* and *where* code should execute based purely on human intent.
-
-In a general sense, you can compile any text file as source and include any library in the source file from any language, provided you give the path after the INCLUDE flag
-
->yori input.extension -o output.extension 
-
-# Yori Compiler
-
-The **Yori Compiler** is a meta-compilation tool designed to bridge the gap between high-level human intent and machine execution. Its mission is to make programming accessible to everyone by allowing software to be built using natural language blueprints.
-
----
-
-## Quick Install (Windows)
-1. Go to Releases and download the latest release, unzip and run the [installer.ps1]
-2. To run the script right-click → Run with PowerShell
-3. Follow prompts (Ollama, model, compiler auto-setup)
-
-
-##  The Vision
-Programming has traditionally required years of study to master syntax and memory management. **Yori** changes this paradigm by turning the developer into an **Architect**. You provide the "What," and the Yori Engine—powered by local and cloud-based AI—determines the "How," generating, verifying, and self-correcting code in **over 20 programming languages** until it produces a working result.
 
 ---
 ##  What Yori IS NOT
