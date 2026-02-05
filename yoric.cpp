@@ -130,6 +130,28 @@ bool isFatalError(const string& errMsg) {
     return false;
 }
 
+// [NEW v5.3] Blueprint Scanner
+void scanBlueprints(const string& code) {
+    stringstream ss(code);
+    string line;
+    while(getline(ss, line)) {
+        string clean = line;
+        size_t first = clean.find_first_not_of(" \t\r\n");
+        if (first != string::npos) clean.erase(0, first);
+        
+        if (clean.rfind("CREATE:", 0) == 0) {
+            string fname = clean.substr(7);
+            size_t q1 = fname.find_first_of("\"'");
+            size_t q2 = fname.find_last_of("\"'");
+            if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
+            
+            if (fname != "END") {
+                cout << "   [PLAN] Found blueprint for: " << fname << endl;
+            }
+        }
+    }
+}
+
 // --- LANGUAGE SYSTEM ---
 struct LangProfile {
     string id; string name; string extension;  
@@ -611,6 +633,7 @@ string processExports(const string& code, const fs::path& basePath) {
             fs::path path = basePath / fname;
             try {
                 if (path.has_parent_path()) {
+                    if (!fs::exists(path.parent_path())) cout << "[EXPORT] Creating directory: " << path.parent_path().string() << endl;
                     fs::create_directories(path.parent_path());
                 }
                 outFile = make_unique<ofstream>(path);
@@ -1157,6 +1180,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // [NEW] Scan for CREATE directives
+    scanBlueprints(aggregatedContext);
+
     size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n") + customInstructions);
     string cacheFile = ".yori_build.cache"; 
 
@@ -1205,14 +1231,15 @@ int main(int argc, char* argv[]) {
         if (CURRENT_MODE == GenMode::CODE) {
             if (makeMode) {
                 prompt << "ROLE: Expert Software Architect & Build System Engineer.\n";
-                prompt << "TASK: Analyze the provided logic and generate an OPTIMAL MODULAR STRUCTURE in " << CURRENT_LANG.name << ".\n";
+                prompt << "TASK: Analyze the provided logic and generate an OPTIMAL MODULAR STRUCTURE based on the requested files.\n";
                 
                 prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
-                prompt << "1. MODULARITY: Separate interfaces (.h/.hpp) from implementations (.cpp/.c) where appropriate.\n";
+                prompt << "1. MODULARITY: Organize code into appropriate files based on their extensions (e.g. headers for C++, modules for JS/Python).\n";
                 prompt << "2. EXPORT DIRECTIVES: You MUST use 'EXPORT: \"filename\"' before the content of EACH file you generate. End each file block with 'EXPORT: END'.\n";
-                prompt << "3. BUILD SCRIPT: If appropriate, generate a build script (Makefile, CMakeLists.txt, or build.sh) and EXPORT it too.\n";
-                prompt << "4. NATIVE IMPLEMENTATION: Re-implement logic using standard " << CURRENT_LANG.name << " libraries.\n";
-                prompt << "5. NO WRAPPERS: Do not use Python.h or system() calls to run original code.\n";
+                prompt << "3. BUILD SCRIPT: If appropriate, generate a build script (Makefile, package.json, CMakeLists.txt, etc.) and EXPORT it too.\n";
+                prompt << "4. IMPLEMENTATION: Implement logic using standard libraries appropriate for each file's language.\n";
+                prompt << "5. NO LAZY WRAPPERS: When generating C/C++, do not use Python.h or system() calls to run other scripts unless explicitly requested.\n";
+                prompt << "6. BLUEPRINTS: If you see 'CREATE: \"filename\"' blocks, implement the logic described inside them and output the result wrapped in 'EXPORT: \"filename\"'.\n";
             } else {
                 // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
                 prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
