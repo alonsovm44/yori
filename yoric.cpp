@@ -36,6 +36,7 @@
 #include <ctime>
 #include <functional>
 #include <set>
+#include <memory>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -61,7 +62,7 @@ string MODEL_ID = "";
 string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "5.4"; 
+const string CURRENT_VERSION = "5.5"; 
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -571,6 +572,71 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     return processed;
 }
 
+// --- EXPORT SYSTEM ---
+string processExports(const string& code, const fs::path& basePath) {
+    stringstream ss(code);
+    string line;
+    unique_ptr<ofstream> outFile;
+    string remaining;
+    bool exportError = false;
+    
+    while (getline(ss, line)) {
+        string cleanLine = line;
+        size_t first = cleanLine.find_first_not_of(" \t\r\n");
+        if (first == string::npos) {
+            if (outFile && outFile->is_open()) *outFile << "\n";
+            else if (!exportError) remaining += line + "\n";
+            continue; 
+        }
+        cleanLine.erase(0, first);
+        
+        if (cleanLine.rfind("EXPORT:", 0) == 0) {
+            outFile.reset(); // Cerrar archivo anterior siempre
+            exportError = false; // Resetear estado de error
+            
+            string fname = cleanLine.substr(7);
+            size_t q1 = fname.find_first_of("\"'");
+            size_t q2 = fname.find_last_of("\"'");
+            if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
+            else {
+                fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
+                size_t last = fname.find_last_not_of(" \t\r\n\"'");
+                if (last != string::npos) fname.erase(last + 1);
+            }
+            
+            if (fname.empty() || fname == "END") {
+                continue;
+            }
+
+            fs::path path = basePath / fname;
+            try {
+                if (path.has_parent_path()) {
+                    fs::create_directories(path.parent_path());
+                }
+                outFile = make_unique<ofstream>(path);
+                if (outFile->is_open()) {
+                    cout << "[EXPORT] Writing to " << fname << "..." << endl;
+                } else {
+                    cerr << "[ERROR] Could not open " << fname << " for writing." << endl;
+                    outFile.reset();
+                    exportError = true; // Activar modo "sumidero"
+                }
+            } catch (const fs::filesystem_error& e) {
+                cerr << "[ERROR] Filesystem error: " << e.what() << endl;
+                outFile.reset();
+                exportError = true; // Activar modo "sumidero"
+            }
+        } else {
+            if (outFile && outFile->is_open()) {
+                *outFile << line << "\n";
+            } else if (!exportError) {
+                remaining += line + "\n";
+            }
+        }
+    }
+    return remaining;
+}
+
 set<string> extractDependencies(const string& code) {
     set<string> deps;
     stringstream ss(code);
@@ -964,6 +1030,7 @@ int main(int argc, char* argv[]) {
     bool runOutput = false;
     bool keepSource = false;
     bool transpileMode = false;
+    bool makeMode = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -976,6 +1043,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-run" || arg == "--run") runOutput = true;
         else if (arg == "-k" || arg == "--keep") keepSource = true;
         else if (arg == "-t" || arg == "--transpile") transpileMode = true;
+        else if (arg == "-make") makeMode = true;
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
@@ -1076,8 +1144,12 @@ int main(int argc, char* argv[]) {
         if (fs::exists(p)) {
             ifstream f(p);
             string raw((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+            
+            string resolved = resolveImports(raw, p.parent_path(), stack);
+            processExports(resolved, p.parent_path());
+
             aggregatedContext += "\n// --- START FILE: " + file + " ---\n";
-            aggregatedContext += resolveImports(raw, p.parent_path(), stack);
+            aggregatedContext += resolved;
             aggregatedContext += "\n// --- END FILE: " + file + " ---\n";
         } else {
             cerr << "Error: File not found: " << file << endl;
@@ -1131,18 +1203,30 @@ int main(int argc, char* argv[]) {
         stringstream prompt;
         
         if (CURRENT_MODE == GenMode::CODE) {
-            // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
-            prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
-            prompt << "TASK: Convert the LOGIC of the provided source files into a SINGLE, RUNNABLE " << CURRENT_LANG.name << " file.\n";
-            
-            prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
-            prompt << "1. SEMANTIC REWRITE ONLY: Do NOT use wrappers like <Python.h>, <node.h>, <jni.h> or system() calls to run the code.\n";
-            prompt << "2. NATIVE IMPLEMENTATION: You MUST manually re-implement the logic of Python/JS/TS functions using standard " << CURRENT_LANG.name << " libraries (e.g., std::vector, std::map, std::string).\n";
-            prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
-            if (!CURRENT_LANG.buildCmd.empty()) {
-                prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
+            if (makeMode) {
+                prompt << "ROLE: Expert Software Architect & Build System Engineer.\n";
+                prompt << "TASK: Analyze the provided logic and generate an OPTIMAL MODULAR STRUCTURE in " << CURRENT_LANG.name << ".\n";
+                
+                prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
+                prompt << "1. MODULARITY: Separate interfaces (.h/.hpp) from implementations (.cpp/.c) where appropriate.\n";
+                prompt << "2. EXPORT DIRECTIVES: You MUST use 'EXPORT: \"filename\"' before the content of EACH file you generate. End each file block with 'EXPORT: END'.\n";
+                prompt << "3. BUILD SCRIPT: If appropriate, generate a build script (Makefile, CMakeLists.txt, or build.sh) and EXPORT it too.\n";
+                prompt << "4. NATIVE IMPLEMENTATION: Re-implement logic using standard " << CURRENT_LANG.name << " libraries.\n";
+                prompt << "5. NO WRAPPERS: Do not use Python.h or system() calls to run original code.\n";
+            } else {
+                // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
+                prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
+                prompt << "TASK: Convert the LOGIC of the provided source files into a SINGLE, RUNNABLE " << CURRENT_LANG.name << " file.\n";
+                
+                prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
+                prompt << "1. SEMANTIC REWRITE ONLY: Do NOT use wrappers like <Python.h>, <node.h>, <jni.h> or system() calls to run the code.\n";
+                prompt << "2. NATIVE IMPLEMENTATION: You MUST manually re-implement the logic of Python/JS/TS functions using standard " << CURRENT_LANG.name << " libraries (e.g., std::vector, std::map, std::string).\n";
+                prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
+                if (!CURRENT_LANG.buildCmd.empty()) {
+                    prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
+                }
+                prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
             }
-            prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
         } else if (CURRENT_MODE == GenMode::MODEL_3D) {
             prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
             prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the description provided in the input files.\n";
@@ -1178,6 +1262,18 @@ int main(int argc, char* argv[]) {
                  cout << "       (Hint: Check 'yori config cloud-protocol'. Current: " << PROTOCOL << ", Provider URL: " << API_URL << ")" << endl;
             }
             continue; 
+        }
+
+        // [MAKE 2.0] Process exports in AI output (Generate files dynamically)
+        code = processExports(code, fs::current_path());
+
+        if (makeMode) {
+            cout << "[MAKE] Generation complete. Files exported." << endl;
+            if (code.find_first_not_of(" \t\n\r") != string::npos) {
+                 ofstream out(outputName); out << code; out.close();
+                 cout << "   [INFO] Remaining content saved to: " << outputName << endl;
+            }
+            return 0;
         }
 
         ofstream out(tempSrc); out << code; out.close();
