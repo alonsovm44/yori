@@ -69,3 +69,67 @@ yori diff <fileA.ext> <fileB.ext>
 ^^ configura cuantas retries maximo acepta el sistema
 
 10. yori sos [language] [-local | -cloud] "error or problem description"
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For 5.7
+
+1. If yori finds that the input source code files are 
+	1) compiled language
+	2) the same language
+	
+	like this->
+`
+>yori file.cpp fileb.cpp -o app.exe -cloud 
+>yori fileA.rs fileb.rs filec.rs -o app.exe -local
+`
+
+Instead of sending the source code to the AI to be transpiled again into c++ (or c or rust or go)(which is redundant), 
+yori directly summons the language compiler, only if error appears will the code be fed into a LLM to fix it. 
+
+2. Semantic Tree Shaking (Optimización de Código Muerto)
+
+Contexto: El usuario define interfaces en archivos importados (ej. stdacorn.acn) o importa lógica compleja, pero el programa final solo utiliza una pequeña fracción de las funciones disponibles.
+Problema: El LLM tiende a ser "excesivamente servicial" e implementa todas las interfaces/funciones definidas, inflando el código final innecesariamente (ej. de 100 a 2000 líneas).
+Objetivo: Implementar un sistema de análisis estático previo a la generación (o posterior a ella) para eliminar funciones, structs y variables que no son referenciadas en el flujo principal del programa.
+Implementación requerida:
+
+Análisis de Referencias (Static Analysis):
+Antes de enviar el prompt al LLM (o después de recibir el código), Yori debe escanear el código principal (main o INTENT principal) para crear una lista blanca de funciones/métodos que son realmente invocados.
+Ejemplo: Si main llama a calculateTax() pero no a calculatePi(), marcar calculatePi como candidato para eliminación.
+Filtrado de Contratos (Pre-Prompting):
+
+Si se detecta un archivo importado (como stdacorn) con muchas interfaces, Yori no debe enviar el archivo completo al LLM.
+En su lugar, debe generar un archivo temporal o un prompt filtrado que contenga solo las definiciones de las funciones utilizadas.
+Instrucción al LLM: "Implementar SOLO las siguientes funciones del contrato: [lista blanca]. Ignorar el resto."
+Limpieza Post-Generación (Safety Net):
+
+Una vez el LLM devuelve el código (C++/Rust), Yori ejecuta un segundo pase.
+
+Busca definiciones de funciones que no tengan ninguna llamada en el resto del archivo y las elimina del código fuente final antes de la compilación.
+Excepción: Mantener funciones que pertenezcan a interfaces públicas (EXPORT) o que sean virtual/override en lenguajes OOP, a menos que se esté en modo "Single Binary".
+
+3. 3. Smart Iterative Mode (Delta Patching / Non-Destructive Updates)
+
+Contexto: Los proyectos evolucionan. El usuario hace un cambio pequeño en un archivo .acn (ej. añade una función o corrige un INTENT).
+Problema: Actualmente, Yori probablemente regenera todo el código fuente desde cero (Full Regeneration) al detectar cambios. Esto es ineficiente, sobrescribe cambios manuales que el usuario pudo haber hecho en el código generado y rompe el flujo de trabajo mental (el "context switch" es alto).
+Objetivo: Permitir actualizaciones incrementales. Yori debe ser capaz de detectar qué cambió y aplicar solo ese cambio ("Patch") sobre los archivos existentes, preservando el resto del código.
+Implementación requerida:
+
+Detección de Diffs (Semantic Diff):
+Comparar el nuevo .acn con la versión anterior (usando el caché de hash o guardando el estado anterior).
+Identificar específicamente qué bloque INTENT, INTERFACE o EXPORT fue modificado, añadido o eliminado.
+
+Solicitud de Parche (Targeted Prompting):
+En lugar de enviar todo el contexto al LLM, enviar solo:
+El bloque de código actual (el archivo C++/Rust existente).
+
+La instrucción específica: "Modifica este archivo para agregar esta nueva función: [descripción]. NO toques el resto del código."
+Esto reduce el costo de tokens drásticamente para cambios pequeños.
+Modo Preservativo (Safe Merge):
+
+Si el usuario ha editado manualmente el archivo generado (ej. añadió un comentario personal o ajustó un magic number), Yori debe intentar conservar esos cambios.
+Utilizar git diff o un algoritmo de merge similar para aplicar el parche de la IA sobre el archivo actual sin borrar las modificaciones manuales, a menos que haya un conflicto directo.
+Beneficio esperado:
+
+Convierte a Yori de una herramienta de "Generar y Tirar" a una herramienta de "Desarrollo y Mantenimiento". Permite ciclos de retroalimentación rápidos (seconds en lugar de minutes) y fomenta que el usuario confíe en editar el resultado generado sabiendo que no lo perderá en la próxima compilación.

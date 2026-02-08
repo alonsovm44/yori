@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v5.2.0 (Full Semantic Guard + SOS Support)
+/* YORI COMPILER (yori.exe) - v5.6.2 (Full Semantic Guard + SOS Support)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS] "*Custom instructions..."
    Features: 
      - Semantic Transpilation (Bans wrappers like Python.h or system("node"))
@@ -54,6 +54,7 @@ using json = nlohmann::json;
 using namespace std;
 namespace fs = std::filesystem;
 
+
 // --- CONFIGURATION ---
 string PROVIDER = "local"; 
 string PROTOCOL = "ollama"; // 'google', 'openai', 'ollama'
@@ -62,7 +63,8 @@ string MODEL_ID = "";
 string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "5.5"; 
+
+const string CURRENT_VERSION = "5.6.2";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -128,28 +130,6 @@ bool isFatalError(const string& errMsg) {
     if (lowerErr.find("jni.h") != string::npos) return true;
     if (lowerErr.find("node.h") != string::npos) return true;
     return false;
-}
-
-// [NEW v5.3] Blueprint Scanner
-void scanBlueprints(const string& code) {
-    stringstream ss(code);
-    string line;
-    while(getline(ss, line)) {
-        string clean = line;
-        size_t first = clean.find_first_not_of(" \t\r\n");
-        if (first != string::npos) clean.erase(0, first);
-        
-        if (clean.rfind("CREATE:", 0) == 0) {
-            string fname = clean.substr(7);
-            size_t q1 = fname.find_first_of("\"'");
-            size_t q2 = fname.find_last_of("\"'");
-            if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
-            
-            if (fname != "END") {
-                cout << "   [PLAN] Found blueprint for: " << fname << endl;
-            }
-        }
-    }
 }
 
 // --- LANGUAGE SYSTEM ---
@@ -601,6 +581,7 @@ string processExports(const string& code, const fs::path& basePath) {
     unique_ptr<ofstream> outFile;
     string remaining;
     bool exportError = false;
+    bool insideTemplate = false; // [FIX] Track template blocks
     
     while (getline(ss, line)) {
         string cleanLine = line;
@@ -616,16 +597,41 @@ string processExports(const string& code, const fs::path& basePath) {
             outFile.reset(); // Cerrar archivo anterior siempre
             exportError = false; // Resetear estado de error
             
-            string fname = cleanLine.substr(7);
-            size_t q1 = fname.find_first_of("\"'");
-            size_t q2 = fname.find_last_of("\"'");
-            if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
-            else {
-                fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
-                size_t last = fname.find_last_not_of(" \t\r\n\"'");
-                if (last != string::npos) fname.erase(last + 1);
+            string rawArgs = cleanLine.substr(7);
+            string fname;
+            string sameLineCode;
+
+            // [FIX] Robust filename parsing: Find FIRST pair of quotes, not last
+            size_t q1 = rawArgs.find_first_of("\"'");
+            if (q1 != string::npos) {
+                char quote = rawArgs[q1];
+                size_t q2 = rawArgs.find(quote, q1 + 1); 
+                if (q2 != string::npos) {
+                    fname = rawArgs.substr(q1 + 1, q2 - q1 - 1);
+                    // Capture content after the filename (e.g. code generated on same line)
+                    if (q2 + 1 < rawArgs.length()) {
+                        sameLineCode = rawArgs.substr(q2 + 1);
+                    }
+                } else {
+                    fname = rawArgs.substr(q1 + 1); // Unmatched quote fallback
+                }
+            } else {
+                // No quotes, take first word
+                stringstream fss(rawArgs);
+                fss >> fname;
+                // Capture remainder
+                size_t fPos = rawArgs.find(fname);
+                if (fPos != string::npos) {
+                    size_t afterFname = fPos + fname.length();
+                    if (afterFname < rawArgs.length()) sameLineCode = rawArgs.substr(afterFname);
+                }
             }
             
+            // Trim fname
+            fname.erase(0, fname.find_first_not_of(" \t\r\n"));
+            size_t last = fname.find_last_not_of(" \t\r\n");
+            if (last != string::npos) fname.erase(last + 1);
+
             if (fname.empty() || fname == "END") {
                 continue;
             }
@@ -639,6 +645,10 @@ string processExports(const string& code, const fs::path& basePath) {
                 outFile = make_unique<ofstream>(path);
                 if (outFile->is_open()) {
                     cout << "[EXPORT] Writing to " << fname << "..." << endl;
+                    // Write content found on the same line (if any non-whitespace)
+                    if (!sameLineCode.empty() && sameLineCode.find_first_not_of(" \t\r\n") != string::npos) {
+                        *outFile << sameLineCode << "\n";
+                    }
                 } else {
                     cerr << "[ERROR] Could not open " << fname << " for writing." << endl;
                     outFile.reset();
@@ -651,7 +661,12 @@ string processExports(const string& code, const fs::path& basePath) {
             }
         } else {
             if (outFile && outFile->is_open()) {
-                *outFile << line << "\n";
+                // [FIX] Skip writing template blocks to disk (they are for the AI)
+                if (line.find("$${") != string::npos) insideTemplate = true;
+                
+                if (!insideTemplate) *outFile << line << "\n";
+                
+                if (line.find("}$$") != string::npos) insideTemplate = false;
             } else if (!exportError) {
                 remaining += line + "\n";
             }
@@ -1144,7 +1159,20 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (outputName.empty()) outputName = stripExt(inputFiles[0]) + CURRENT_LANG.extension;
+    // [FIX] Smart default output name:
+    // If language produces binary and we are NOT in transpile-only mode, default to executable extension.
+    if (outputName.empty()) {
+        string baseName = stripExt(inputFiles[0]);
+        if (CURRENT_LANG.producesBinary && !transpileMode) {
+            #ifdef _WIN32
+            outputName = baseName + ".exe";
+            #else
+            outputName = baseName;
+            #endif
+        } else {
+            outputName = baseName + CURRENT_LANG.extension;
+        }
+    }
     
     if (CURRENT_MODE == GenMode::CODE) {
         cout << "[CHECK] Toolchain for " << CURRENT_LANG.name << "..." << endl;
@@ -1169,6 +1197,13 @@ int main(int argc, char* argv[]) {
             string raw((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
             
             string resolved = resolveImports(raw, p.parent_path(), stack);
+            
+            // [AUTO-DETECT] Enable makeMode if EXPORT is detected
+            if (resolved.find("EXPORT:") != string::npos && !makeMode) {
+                cout << "[INFO] 'EXPORT:' directive detected. Auto-enabling Architect Mode (-make)." << endl;
+                makeMode = true;
+            }
+
             processExports(resolved, p.parent_path());
 
             aggregatedContext += "\n// --- START FILE: " + file + " ---\n";
@@ -1179,9 +1214,6 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
-
-    // [NEW] Scan for CREATE directives
-    scanBlueprints(aggregatedContext);
 
     size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n") + customInstructions);
     string cacheFile = ".yori_build.cache"; 
@@ -1224,7 +1256,8 @@ int main(int argc, char* argv[]) {
     int passes = MAX_RETRIES;
     
     for(int gen=1; gen<=passes; gen++) {
-        cout << "   [Pass " << gen << "] Generating " << CURRENT_LANG.name << "..." << endl;
+        if (makeMode) cout << "   [Pass " << gen << "] Architecting Project..." << endl;
+        else cout << "   [Pass " << gen << "] Generating " << CURRENT_LANG.name << "..." << endl;
         
         stringstream prompt;
         
@@ -1236,10 +1269,12 @@ int main(int argc, char* argv[]) {
                 prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
                 prompt << "1. MODULARITY: Organize code into appropriate files based on their extensions (e.g. headers for C++, modules for JS/Python).\n";
                 prompt << "2. EXPORT DIRECTIVES: You MUST use 'EXPORT: \"filename\"' before the content of EACH file you generate. End each file block with 'EXPORT: END'.\n";
+                prompt << "   - CRITICAL: You must output the EXPORT block for EVERY file defined in the blueprint that needs implementation. If you skip the EXPORT tag, the file will remain empty/placeholder.\n";
                 prompt << "3. BUILD SCRIPT: If appropriate, generate a build script (Makefile, package.json, CMakeLists.txt, etc.) and EXPORT it too.\n";
                 prompt << "4. IMPLEMENTATION: Implement logic using standard libraries appropriate for each file's language.\n";
                 prompt << "5. NO LAZY WRAPPERS: When generating C/C++, do not use Python.h or system() calls to run other scripts unless explicitly requested.\n";
-                prompt << "6. BLUEPRINTS: If you see 'CREATE: \"filename\"' blocks, implement the logic described inside them and output the result wrapped in 'EXPORT: \"filename\"'.\n";
+                prompt << "6. HYBRID TEMPLATES: You will encounter 'EXPORT: \"filename\"' blocks containing mixed code and '$${ instructions }$$' blocks. Preserve the code, but replace '$${ instructions }$$' with the implementation of the described logic.\n";
+                prompt << "7. NO CHATTER: Do not output any conversational text or explanations outside of EXPORT blocks. Output ONLY the EXPORT blocks.\n";
             } else {
                 // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
                 prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
@@ -1296,10 +1331,6 @@ int main(int argc, char* argv[]) {
 
         if (makeMode) {
             cout << "[MAKE] Generation complete. Files exported." << endl;
-            if (code.find_first_not_of(" \t\n\r") != string::npos) {
-                 ofstream out(outputName); out << code; out.close();
-                 cout << "   [INFO] Remaining content saved to: " << outputName << endl;
-            }
 
             // [INTELLIGENT BUILD] Auto-detect and run generated build scripts
             if (runOutput) {
