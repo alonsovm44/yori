@@ -48,6 +48,11 @@
 #include <limits.h>
 #endif
 
+#ifndef _WIN32
+#define _popen popen
+#define _pclose pclose
+#endif
+
 #include "json.hpp" 
 
 using json = nlohmann::json;
@@ -761,6 +766,7 @@ void selectTarget() {
 
 // --- MAIN ---
 int main(int argc, char* argv[]) {
+    std::cout << "DEBUG: direct compilation works"<< std::endl;
     auto startTime = std::chrono::high_resolution_clock::now();
     initLogger(); 
 
@@ -1252,6 +1258,69 @@ int main(int argc, char* argv[]) {
     string tempSrc = "temp_build" + CURRENT_LANG.extension;
     string tempBin = "temp_build.exe"; 
     string errorHistory = ""; 
+
+    // [OPTIMIZATION] Direct Compilation for matching source files
+    bool canDirectCompile = false;
+    if (CURRENT_MODE == GenMode::CODE && CURRENT_LANG.producesBinary && 
+        customInstructions.empty() && !updateMode && !transpileMode && !makeMode) {
+        
+        canDirectCompile = true;
+        for (const auto& file : inputFiles) {
+            if (getExt(file) != CURRENT_LANG.extension) {
+                canDirectCompile = false;
+                break;
+            }
+        }
+    }
+
+    if (canDirectCompile) {
+        cout << "[DIRECT] Attempting direct compilation..." << endl;
+        string fileList = "";
+        for (const auto& file : inputFiles) fileList += "\"" + file + "\" ";
+        if (!fileList.empty()) fileList.pop_back();
+
+        string cmd = CURRENT_LANG.buildCmd + " " + fileList + " -o \"" + tempBin + "\"";
+        if (VERBOSE_MODE) cout << "[CMD] " << cmd << endl;
+        
+        CmdResult build = execCmd(cmd);
+        
+        if (build.exitCode == 0) {
+            cout << "[SUCCESS] Direct compilation succeeded." << endl;
+            
+            bool saveSuccess = false;
+            for(int i=0; i<5; i++) {
+                try {
+                    if (fs::exists(outputName)) fs::remove(outputName);
+                    fs::copy_file(tempBin, outputName, fs::copy_options::overwrite_existing);
+                    saveSuccess = true;
+                    break;
+                } catch (...) { std::this_thread::sleep_for(std::chrono::milliseconds(200)); }
+            }
+            
+            if (fs::exists(tempBin)) fs::remove(tempBin);
+            
+            if (!saveSuccess) {
+                 cerr << "[ERROR] Failed to save final output. File may be locked." << endl;
+                 return 1;
+            }
+            
+            if (runOutput) {
+                cout << "\n[RUN] Executing..." << endl;
+                string runCmd = outputName;
+                #ifndef _WIN32
+                if (runCmd.find('/') == string::npos) runCmd = "./" + runCmd;
+                std::error_code ec;
+                fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
+                #endif
+                string sysCmd = "\"" + runCmd + "\"";
+                system(sysCmd.c_str());
+            }
+            return 0;
+        } else {
+            cout << "[WARN] Direct compilation failed. Falling back to AI repair..." << endl;
+            errorHistory = "PREVIOUS COMPILATION ATTEMPT FAILED:\n" + build.output;
+        }
+    }
     
     int passes = MAX_RETRIES;
     
