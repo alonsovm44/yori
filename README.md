@@ -1,236 +1,140 @@
 # Yori Compiler
+The AI-Native Compiler.The first build system that bridges the gap between Human Intent and Native Machine Code.
+--- 
+## What is Yori?
+Traditional compilers (GCC, Clang) are rigid: they translate syntax. If you make a mistake, they complain.Yori is different. It is an "Agentic" compiler that understands Intent.
 
-The compiler that fixes your code before you even see the error.
+It doesn't just translate; it comprehends. If Yori encounters an error (syntax, missing library, logic flaw), it stops, analyzes the failure, fixes the source code, and recompiles automatically. It turns your natural language and pseudo-code into high-performance binaries (C++, Rust, Go) instantly.
 
 ## Why use Yori?
+1. The Evolution of Build Systems (Beyond CMake)
+CMake revolutionized software by bridging the gap between Configuration and Build.Yori takes this to the next extreme. It bridges the gap between Concept and Implementation.
 
-Most compilers just complain when you make a mistake. Yori solves it.
+A. With CMake: You write configuration files. You still have to write the C++ code yourself.
+B. With Yori: You write the Intent (e.g., "Create a dashboard"), and Yori generates the configuration, the source code, and the build files.
 
-Yori is an AI-native compiler wrapper that bridges the gap between high-level logic and native machine code. It allows you to write in Python, pseudo-code, or your own DSL and compiles it into high-performance binaries (C++, Rust, Go, etc.) seamlessly (provided you give the necessary libraries).
----
+2. Speed of Prototyping (Zero-Syntax)
+Transform a high-level idea into a compiled executable in minutes, not days.
 
-## You should use Yori if
-1. You want to prototype fast: Describe features in your own DSL or pseudocode and Yori does the heavy lifting for you.
-2. You hate debugging syntax errors: Yori captures compiler errors, understands them, fixes the source code, and recompiles automatically.
-3. You value privacy: Full support for Local LLMs (Ollama) means your code never has to leave your machine.
-4. You need performance: Write in "Python-like" logic, but get a compiled C++ or Rust binary out.
+Input: English intent + Pseudo-code.
+Output: Optimized C++ or Rust binaries.
+Value: Reduces "Time-to-Binary" from weeks to minutes.
 
+3. Self-Healing Toolchain
+Stop debugging compiler errors manually. Yori creates a feedback loop:
+
+Generate Code. Compile. Fail? Yori reads the error, patches the code, and retries.
 ## Key Features
+1. Semantic Transpilation (Code Agnostic)
+Write in Python, JavaScript, or your own Domain Specific Language (DSL) and compile it to native performance. Yori guarantees native implementation (no "Python.h" hacks), creating standalone executables.
 
-- Semantic Transpilation & Compilation
+2. Universal Imports (IMPORT:)
+Mix languages in a single project.
+```acorn
+IMPORT: "utils.py"  // Python logic
+IMPORT: "core.cpp"  // C++ performance
 
-Yori doesn't just translate syntax; it translates intent. You can feed it a .py file but ask for a C++ binary. Yori ensures the logic is ported using native libraries (no Python.h hacks), creating standalone executables.
-
-- Autohealing toolchain
-
-1. Yori runs in a loop with your system's compiler (GCC, Rustc, Go, etc.).
-2. Yori generates code.
-3. Yori attempts to compile.
-If it fails: Yori reads the error log, understands why it failed (missing semi-colon? wrong library?), patches the code, and tries again.
-
-- Model Agnostic
-1. Local: Auto-detects your installed Ollama models (Llama 3, Qwen, DeepSeek). Zero cost, full privacy.
-2. Cloud: Native integration with Groq, OpenAI, and Google Gemini for when you need maximum reasoning power.
-
-## Utilities
-
-Yori includes quality of life utilities for programmers. No more diving into StackOverflow for hours
-
-1. `yori fix file.cpp "fix segfault at line 203`-> applies semantic fixes
-2. `yori explain file.rs` Makes a copy of the file commented and documented for you
-3. `yori diff fileA.cpp fileB.cpp` Explains semantic changes, not just the diffs
-4. `yori sos "help me fix this error...` instant AI techsupport
-
-## Manual install (Windows)
-1. Go to Releases and download the latest release, unzip and run the [installer.ps1]
-2. To run the script right-click → Run with PowerShell
-3. Follow prompts (Ollama, model, compiler auto-setup)
----
-## Build Yori yourself
-
-```Bash
-g++ yoric.cpp -o yori -std=c++17 
-
-Move to path (Linux/Mac)
-sudo my yori /usr/local/bin/
+INTENT "Combine core.cpp and utils.py in a single executable file"
 ```
-# Configuration
-Yori works out the box but you can config it as you see fit
-```bash
-yori config model-local 
+## SECI (Semantic Embedded Code Injection)
+Inject AI-generated logic directly into specific files using the $${ ... }$$ blocks.
+
+```acorn
+EXPORT: "main.cpp" 
+#include <iostream>
+ $${
+   1. print hello world and clean the buffer
+}$$
 ```
-Cloud Setup
-```bash
-yori config cloud-protocol google # or openai
-yori config api-key "YOUR_API_KEY"
-yori condig model-cloud "gemini-1.5-flash"
-```
+Yori will provide the cpp code in the semantic block, whatever is found outside it will be compied literally into the file.
 
-##  The Vision
-Programming has traditionally required years of study to master syntax and memory management. Yori aims to lower the entry barrier of software engineering so a broader audience can access computational resources for their professional fields.  
-
-# Yori is best meant for
-
-- **Software developers** who want to prototype an MVP fast and better, from weeks to days or hours.
-- **CS professors and CS101 students** who want to exercise computational thinking without wrestling syntax again.
-- **Domain professionals** (physicists, biologists, economists) who need to simulate systems but don't understand language syntax—Yori lets them code in their domain vocabulary and transpile their code to working python scripts or native c++ executables.
-- **Indie gamedevs** building multilingual prototypes and rapid iteration builds.
-- **Data scientists** needing Python ML models packaged as single standalone executables.
-- **Junior developers** who want to understand systems without syntax pain.
-- **Product managers** specifying features that auto-compile to working demos for stakeholder validation.
-- **DevOps engineers** generating infrastructure-as-code and deployment configs from high-level intent.
-- **UX/Design teams** creating functional prototypes to validate interaction flows before frontend dev.
-- **Hardware engineers** who need embedded firmware prototypes without toolchain setup.
-- **Financial analysts** building risk models, dashboards, and trading algorithms without learning Python/R.
-- **Marketers** generating landing pages, A/B tests, and conversion funnels as standalone deploys.
-- **Open source maintainers** rapidly scaffolding new features, APIs, or CLIs for contributor feedback.
-- **Technical writers** embedding working code examples directly in documentation that auto-updates.
-- **CEO/Founders** sketching SaaS ideas that become shippable MVPs for investor demos.
+### Model Agnostic
+*   **Local:** Full support for Ollama (Llama 3, Qwen, DeepSeek). Zero cost, 100% privacy.
+*   **Cloud:** Native integration with Groq, OpenAI, and Google Gemini. Faster, more advanced models.
 
 ---
 
-## Other Use cases
+## Use Cases
 
-1. The "Zero-Syntax" Prototyping Pipeline
-The Problem: High-performance languages like C++ or Rust have steep learning curves and strict syntax that slows down initial prototyping. Developers often choose Python for speed, only to face performance bottlenecks later. The Yori Solution: Developers can write their logic in high-level pseudo-code or Python-like syntax and use Yori to transpile it into native, optimized C++ code. Yori ensures the output doesn't rely on "hacks" (like wrapping Python headers), but instead creates pure, idiomatic systems code ready for production. Value: Reduces "Time-to-Binary" for complex systems from days to minutes.
+### Who is Yori for?
+*   **Product Managers:** specifying features that auto-compile to working demos.
+*   **Researchers/Scientists:** Simulating systems without learning complex syntax (C++/Rust).
+*   **Students:** Learning computational thinking without wrestling with syntax errors.
+*   **Indie Devs:** Rapidly scaffolding multilingual prototypes.
 
-2. Autonomous CI/CD Error Resolution
-The Problem: In automated build environments (Continuous Integration), a single missing semicolon or a deprecated library call can break a pipeline, requiring a human developer to stop their work, find the error, and push a fix. The Yori Solution: Yori can be integrated into the build toolchain as a "Self-Healing Agent." When a compilation fails, Yori captures the error log, analyzes the source code, applies a semantic patch, and attempts to recompile. If successful, it presents the developer with a suggested pull request already containing the fix. Value: Drastically reduces downtime in development pipelines and automates trivial debugging.
+### The "Zero-Syntax" Pipeline
+The Problem: High-performance languages (C++, Rust) have steep learning curves.
+The Solution: Write logic in Python/English. Use Yori to transpile to native C++ automatically.
 
-3. Privacy-First Legacy Modernization
-The Problem: Many enterprises have legacy codebases (old C or Fortran) that need to be modernized or documented, but they cannot upload this sensitive intellectual property to cloud-based AIs (like ChatGPT or Claude) due to strict compliance rules. The Yori Solution: Because Yori supports Local LLMs via Ollama, it can run entirely offline on a secure company server. It can ingest old source files, explain their logic, detect potential security vulnerabilities, and transpile them into modern languages (like Rust) without a single line of code ever leaving the internal network. Value: Provides AI-accelerated modernization while maintaining 100% data sovereignty and security.
+---
 
-## Quick Install
-Quick Install Commands
-Linux/macOS
-<curl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash>
-Or with wget:
-<wget -qO- https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash>
-Windows (PowerShell)
-<irm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex>
-Or with shorter URL (if you setup a domain):
-<irm yori.dev/install.ps1 | iex>
 ## Installation
 
 ### Quick Install (Recommended)
 
 **Linux/macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash
-```
+curl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/linux_installer.sh | bash
+``` 
 
 **Windows:**
-```powershell
+Windows (PowerShell):
+
+```PS
 irm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex
 ```
+Manual Build
 
-### Manual Install
-
-1. Download the [latest release](https://github.com/alonsovm44/yori/releases)
-2. Extract the archive
-3. Run the installer:
-   - Windows: `install.bat`
-   - Linux: `./install.sh`
-
----
-
-## First Steps
-
-After installation:
-```bash
-# Create example project
-yori --init
-
-# Compile your first program
-yori hello.yori -o hello.exe -c
-
-# Run it
-./hello.exe
-```
-
-
----
-##  What Yori IS NOT
-
-To manage expectations regarding traditional compiler theory and define the tool's scope, it is important to clarify what Yori is not:
-
--Not a Traditional Deterministic Compiler:
-
--Unlike GCC, Clang, or Rustc, Yori does not rely on a hand-written lexer, parser, Abstract Syntax Tree (AST), or formal grammar rules to translate code.
-
--What it is instead: It is an Agentic Build System that leverages Large Language Models (LLMs) to interpret intent and transpile mixed-syntax code into a high-performance target language (like C++).
-
--Not 100% Deterministic (but can do incremental development with the -u flag):
-
-Due to the probabilistic nature of AI, compiling the same source file twice might result in slightly different underlying C++ implementations (though functionally identical).
-
-Mitigation: Yori employs caching mechanisms and strict prompting to stabilize output, but it does not guarantee bit-for-bit binary reproducibility across builds.
-
-Not "Just a ChatGPT Wrapper":
-
-While it uses AI for code generation, Yori adds a critical layer of Systems Engineering:
-
-1. Context Awareness: Handles multi-file imports and dependencies.
-
-2. Self-Healing: Automatically feeds compiler errors back into the system to fix bugs.
-
-3. Fail-Fast Safety: Detects missing libraries/headers before wasting resources.
-
-4. Toolchain Abstraction: Manages the invocation of native compilers (g++, rustc, etc.) transparently.
-
-### Summary:
- Yori is a Software 2.0 tool. If you need absolute formal verification and clock-cycle precision, use a traditional compiler. If you want to prototype complex ideas in seconds using natural language and mixed logic or your own language, use Yori.
-
-
-## UNIVERSAL IMPORTS
-
-Yori files support universal imports using IMPORT: keyword. Example:
-
-````cpp
-int function1(int x){
-    return x + 6;
-}
-````
-````py
-def function2(x):
-    return x + 7
-````
-````yori
-IMPORT: a.cpp //for function1()
-IMPORT: b.py // for function2()
-
-INT x=1
-PRINT(function1(x))
-PRINT(function2(y))
-
-```` 
 ````bash
-yori example.yori -o myapp.exe -cpp -cloud 
->7
->8
+g++ yoric.cpp -o yori -std=c++17 -lstdc++fs
+```` 
+Usage Examples
+1. Basic Compilation
+````bash
+yori main.cpp -o app.exe -cpp -cloud
 ````
-Yori follows a You-provide-first philosophy, it won't make libraries from scratch, be sure to provide them if possible. Yori can handle this
-````
-INCLUDE: raylib.h
-INCLUDE: mypy.py
 
-//program logic
+2. The Architect Mode (Multi-file Projects)
+Generate entire project structures with EXPORT:.
 
+```bash
+yori project.txt -make -cloud
+```
+3. Auto-Fix Code
+Let Yori solve compilation errors for you.
+```bash
+yori fix server.cpp "fix segmentation fault" -cloud
+```
+4. Universal Linking
+Transpile multiple source files into a single binary.
+````bash
+
+yori a.py b.cpp c.rs -o app.exe -cpp -cloud
 ````
-Yori behaves better with All-in-one libraries
-## UNIVERSAL LINKING
-Yori now supports universal file compilation (4.5) like so
-````
->yori a.cpp b.py c.cs d.js e.acn -o myapp.exe -c -cloud 
-//you could also transpile multiple files into a single file
->yori a.py b.py c.py -o d.c -cloud
-````
-## IMPROVE PERFORMANCE JUST WITH COMMENTS
-Compiler directives are universal and can be used in any language.
-if you have a python script (or any script) that needs a performance boost just add "#!!! improve performance" (or use the appropiate comment syntax with !!! flag) to tell the compiler what you want. Then you have two options
-````
->yori myscript.py -o myscripy_boost.py -cloud
-````
-````Or
-yori myscript.py -o myapp_boost.exe -cpp -cloud
-````
+## What Yori is NOT
+To manage expectations, it is important to distinguish Yori from traditional tools:
+
+1. Not a Traditional Deterministic Compiler: Yori does not use a hand-written lexer or formal grammar rules. It uses Large Language Models (LLMs) to interpret intent.
+2. Not 100% Deterministic: Due to the probabilistic nature of AI, compiling the same file twice might result in slightly different underlying C++ implementations (though functionally identical).
+Mitigation: Yori employs caching mechanisms and strict prompting to stabilize output.
+3. Not just a Wrapper: Unlike standard ChatGPT web interfaces, Yori adds systems engineering: Context Awareness, Dependency Checking, and an Auto-Healing Loop.
+
+## Configuration
+Setup Local AI (Privacy First)
+```bash
+
+yori config model-local qwen2.5-coder:latest
+```
+Setup Cloud AI (Max Reasoning)
+```bash
+yori config api-key "YOUR_KEY"
+yori config model-cloud gemini-1.5-flash
+```
+The Vision
+Programming has traditionally required years of study to master syntax and memory management. Yori aims to lower the barrier of software engineering so a broader audience can access computational resources for their professional fields.
+
+Yori transforms the compiler from a syntax checker into a partner in creation.
+---
+License & Contributing
+MIT License
+---
