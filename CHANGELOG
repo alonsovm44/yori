@@ -7,7 +7,7 @@ All notable changes in Yori are documented here
 -tree shaking
 -simple IR
 [5.7.1]
-1. 
+1. Fixed bug were if api errors ocurred in `-series` mode it would interrupr file generation and skip them, ruining the project.
 
 [5.7.0] 2026-02-10
 1. Added `-series` mode: Generates multi-file projects sequentially to prevent AI context fatigue.
