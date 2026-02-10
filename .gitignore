@@ -2,6 +2,8 @@
 *.exe
 *.dll
 *.o
+*log
+.yori_build.cache
 *.obj
 *.txt
 # -- tempoal ---

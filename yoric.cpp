@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v5.6.3 (Full Semantic Guard + SOS Support)
+/* YORI COMPILER (yori.exe) - v5.7.0 (Full Semantic Guard + SOS Support)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS] "*Custom instructions..."
    Features: 
      - Semantic Transpilation (Bans wrappers like Python.h or system("node"))
@@ -69,7 +69,7 @@ string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
-const string CURRENT_VERSION = "5.6.3";
+const string CURRENT_VERSION = "5.7.0";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -579,6 +579,90 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     return processed;
 }
 
+// [NEW] Helper to strip AI templates ($${...}$$) from code lines
+string stripTemplates(const string& line, bool& insideTemplate) {
+    string result;
+    size_t pos = 0;
+
+    if (insideTemplate) {
+        size_t end = line.find("}$$");
+        if (end != string::npos) {
+            pos = end + 3;
+            insideTemplate = false;
+        } else {
+            return "";
+        }
+    }
+
+    while (pos < line.length()) {
+        size_t start = line.find("$${", pos);
+        if (start == string::npos) {
+            result += line.substr(pos);
+            break;
+        }
+        if (start > pos) {
+            result += line.substr(pos, start - pos);
+        }
+        size_t end = line.find("}$$", start + 3);
+        if (end == string::npos) {
+            insideTemplate = true;
+            break;
+        }
+        pos = end + 3;
+    }
+    return result;
+}
+
+// [NEW] Series Mode: Parse blueprint for sequential generation
+struct BlueprintEntry {
+    string filename;
+    string content;
+};
+
+vector<BlueprintEntry> parseBlueprint(const string& fullContext) {
+    vector<BlueprintEntry> entries;
+    stringstream ss(fullContext);
+    string line;
+    BlueprintEntry current;
+    bool inBlock = false;
+
+    while (getline(ss, line)) {
+        // Skip internal markers
+        if (line.find("// --- START FILE:") == 0 || line.find("// --- END FILE:") == 0) continue;
+
+        string cleanLine = line;
+        size_t first = cleanLine.find_first_not_of(" \t\r\n");
+        if (first == string::npos) {
+            if (inBlock) current.content += line + "\n";
+            continue;
+        }
+        cleanLine.erase(0, first);
+
+        if (cleanLine.rfind("EXPORT:", 0) == 0) {
+            if (inBlock && !current.filename.empty()) {
+                entries.push_back(current);
+            }
+            current = BlueprintEntry();
+            string rawArgs = cleanLine.substr(7);
+            
+            size_t q1 = rawArgs.find_first_of("\"'");
+            if (q1 != string::npos) {
+                char quote = rawArgs[q1];
+                size_t q2 = rawArgs.find(quote, q1 + 1);
+                if (q2 != string::npos) current.filename = rawArgs.substr(q1 + 1, q2 - q1 - 1);
+            } else {
+                stringstream fss(rawArgs); fss >> current.filename;
+            }
+            
+            inBlock = (current.filename != "END" && !current.filename.empty());
+        } else {
+            if (inBlock) current.content += line + "\n";
+        }
+    }
+    if (inBlock && !current.filename.empty()) entries.push_back(current);
+    return entries;
+}
+
 // --- EXPORT SYSTEM ---
 string processExports(const string& code, const fs::path& basePath) {
     stringstream ss(code);
@@ -601,6 +685,7 @@ string processExports(const string& code, const fs::path& basePath) {
         if (cleanLine.rfind("EXPORT:", 0) == 0) {
             outFile.reset(); // Cerrar archivo anterior siempre
             exportError = false; // Resetear estado de error
+            insideTemplate = false; // [FIX] Reset template state
             
             string rawArgs = cleanLine.substr(7);
             string fname;
@@ -666,12 +751,11 @@ string processExports(const string& code, const fs::path& basePath) {
             }
         } else {
             if (outFile && outFile->is_open()) {
-                // [FIX] Skip writing template blocks to disk (they are for the AI)
-                if (line.find("$${") != string::npos) insideTemplate = true;
-                
-                if (!insideTemplate) *outFile << line << "\n";
-                
-                if (line.find("}$$") != string::npos) insideTemplate = false;
+                // [FIX] Robust template handling via helper
+                string cleanContent = stripTemplates(line, insideTemplate);
+                if (!cleanContent.empty()) {
+                    *outFile << cleanContent << "\n";
+                }
             } else if (!exportError) {
                 remaining += line + "\n";
             }
@@ -1075,6 +1159,7 @@ int main(int argc, char* argv[]) {
     bool keepSource = false;
     bool transpileMode = false;
     bool makeMode = false;
+    bool seriesMode = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -1088,6 +1173,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-k" || arg == "--keep") keepSource = true;
         else if (arg == "-t" || arg == "--transpile") transpileMode = true;
         else if (arg == "-make") makeMode = true;
+        else if (arg == "-series") seriesMode = true;
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
@@ -1205,7 +1291,7 @@ int main(int argc, char* argv[]) {
             string resolved = resolveImports(raw, p.parent_path(), stack);
             
             // [AUTO-DETECT] Enable makeMode if EXPORT is detected
-            if (resolved.find("EXPORT:") != string::npos && !makeMode) {
+            if (resolved.find("EXPORT:") != string::npos && !makeMode && !seriesMode) {
                 cout << "[INFO] 'EXPORT:' directive detected. Auto-enabling Architect Mode (-make)." << endl;
                 makeMode = true;
             }
@@ -1242,6 +1328,42 @@ int main(int argc, char* argv[]) {
 
     set<string> potentialDeps = extractDependencies(aggregatedContext);
     if (!preFlightCheck(potentialDeps)) return 1;
+
+    // [SERIES MODE] Sequential Generation
+    if (seriesMode) {
+        cout << "[SERIES] Parsing blueprint for sequential generation..." << endl;
+        auto blueprint = parseBlueprint(aggregatedContext);
+        
+        if (blueprint.empty()) {
+            cout << "[WARN] No EXPORT blocks found for series mode." << endl;
+        } else {
+            string projectContext = "";
+            int idx = 1;
+            for (const auto& item : blueprint) {
+                cout << "   [" << idx++ << "/" << blueprint.size() << "] Generating " << item.filename << "..." << endl;
+                
+                stringstream prompt;
+                prompt << "ROLE: " << (CURRENT_MODE == GenMode::CODE ? "Software Architect" : "Asset Generator") << ".\n";
+                prompt << "TASK: Implement the file '" << item.filename << "'.\n";
+                prompt << "CONTEXT:\n" << projectContext << "\n";
+                prompt << "FILE INSTRUCTIONS:\n" << item.content << "\n";
+                prompt << "OUTPUT: Return ONLY the valid code/content for " << item.filename << ". No markdown blocks if possible.";
+                
+                string response = callAI(prompt.str());
+                string code = extractCode(response);
+                
+                if (code.find("ERROR:") == 0) {
+                    cout << "   [!] API Error: " << code << endl;
+                } else {
+                    ofstream out(item.filename); out << code; out.close();
+                    cout << "      -> Saved." << endl;
+                    projectContext += "\n// --- FILE: " + item.filename + " ---\n" + code + "\n";
+                }
+            }
+            cout << "[SERIES] All tasks completed." << endl;
+            return 0;
+        }
+    }
 
     string existingCode = "";
     if (updateMode) {
@@ -1332,31 +1454,27 @@ int main(int argc, char* argv[]) {
         
         if (CURRENT_MODE == GenMode::CODE) {
             if (makeMode) {
-                prompt << "ROLE: Expert Software Architect & Build System Engineer.\n";
-                prompt << "TASK: Analyze the provided logic and generate an OPTIMAL MODULAR STRUCTURE based on the requested files.\n";
-                
-                prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
-                prompt << "1. MODULARITY: Organize code into appropriate files based on their extensions (e.g. headers for C++, modules for JS/Python).\n";
-                prompt << "2. EXPORT DIRECTIVES: You MUST use 'EXPORT: \"filename\"' before the content of EACH file you generate. End each file block with 'EXPORT: END'.\n";
-                prompt << "   - CRITICAL: You must output the EXPORT block for EVERY file defined in the blueprint that needs implementation. If you skip the EXPORT tag, the file will remain empty/placeholder.\n";
-                prompt << "3. BUILD SCRIPT: If appropriate, generate a build script (Makefile, package.json, CMakeLists.txt, etc.) and EXPORT it too.\n";
-                prompt << "4. IMPLEMENTATION: Implement logic using standard libraries appropriate for each file's language.\n";
-                prompt << "5. NO LAZY WRAPPERS: When generating C/C++, do not use Python.h or system() calls to run other scripts unless explicitly requested.\n";
-                prompt << "6. HYBRID TEMPLATES: You will encounter 'EXPORT: \"filename\"' blocks containing mixed code and '$${ instructions }$$' blocks. Preserve the code, but replace '$${ instructions }$$' with the implementation of the described logic.\n";
-                prompt << "7. NO CHATTER: Do not output any conversational text or explanations outside of EXPORT blocks. Output ONLY the EXPORT blocks.\n";
+                prompt << "ROLE: Software Architect.\n";
+                prompt << "TASK: Structure and implement the project files.\n";
+                prompt << "RULES:\n";
+                prompt << "1. Use 'EXPORT: \"filename\"' ... 'EXPORT: END' for every file.\n";
+                prompt << "2. Implement full logic using standard libraries. No placeholders.\n";
+                prompt << "3. Include build scripts (Makefile/CMakeLists.txt) if needed.\n";
+                prompt << "4. NO wrappers (Python.h/system()). Native implementation only.\n";
+                prompt << "5. Process '$${ instructions }$$' templates by implementing the logic.\n";
+                prompt << "6. Output ONLY the EXPORT blocks. No conversation.\n";
             } else {
                 // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
-                prompt << "ROLE: Expert Semantic Transpiler & Native Code Architect.\n";
-                prompt << "TASK: Convert the LOGIC of the provided source files into a SINGLE, RUNNABLE " << CURRENT_LANG.name << " file.\n";
-                
-                prompt << "\n--- CRITICAL CONSTRAINTS (DO NOT IGNORE) ---\n";
-                prompt << "1. SEMANTIC REWRITE ONLY: Do NOT use wrappers like <Python.h>, <node.h>, <jni.h> or system() calls to run the code.\n";
-                prompt << "2. NATIVE IMPLEMENTATION: You MUST manually re-implement the logic of Python/JS/TS functions using standard " << CURRENT_LANG.name << " libraries (e.g., std::vector, std::map, std::string).\n";
-                prompt << "3. SELF-CONTAINED: The output must NOT require external runtimes (Node, Python, etc.) to function.\n";
+                prompt << "ROLE: Semantic Transpiler.\n";
+                prompt << "TASK: Convert input logic to a single valid " << CURRENT_LANG.name << " file.\n";
+                prompt << "RULES:\n";
+                prompt << "1. NO wrappers (<Python.h>, system()). Re-implement logic natively.\n";
+                prompt << "2. Use standard libraries (e.g. std::vector, std::map).\n";
+                prompt << "3. Output must be self-contained and runnable.\n";
                 if (!CURRENT_LANG.buildCmd.empty()) {
-                    prompt << "4. ENTRY POINT: You MUST include a 'main' function that orchestrates/calls the logic of all input files sequentially or as logic dictates.\n";
+                    prompt << "4. Include a 'main' entry point.\n";
                 }
-                prompt << "5. NO EXTERNAL HEADERS: Do not include headers for other languages.\n";
+                prompt << "5. No external language headers.\n";
             }
         } else if (CURRENT_MODE == GenMode::MODEL_3D) {
             prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
@@ -1402,24 +1520,46 @@ int main(int argc, char* argv[]) {
             cout << "[MAKE] Generation complete. Files exported." << endl;
 
             // [INTELLIGENT BUILD] Auto-detect and run generated build scripts
+            bool buildSuccess = false;
+            if (fs::exists("Makefile")) {
+                cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
+                if (system("make") == 0) buildSuccess = true;
+            } else if (fs::exists("CMakeLists.txt")) {
+                cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
+                if (!fs::exists("build")) fs::create_directory("build");
+                if (system("cd build && cmake .. && cmake --build .") == 0) buildSuccess = true;
+            } else if (fs::exists("build.sh")) {
+                cout << "[MAKE] build.sh detected. Executing..." << endl;
+                #ifndef _WIN32
+                if (system("chmod +x build.sh && ./build.sh") == 0) buildSuccess = true;
+                #else
+                if (system("bash build.sh") == 0) buildSuccess = true;
+                #endif
+            } else if (fs::exists("build.bat")) {
+                cout << "[MAKE] build.bat detected. Executing..." << endl;
+                if (system("build.bat") == 0) buildSuccess = true;
+            } else {
+                cout << "[MAKE] No build script found. Skipping build step." << endl;
+            }
+
             if (runOutput) {
-                if (fs::exists("Makefile")) {
-                    cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
-                    system("make");
-                } else if (fs::exists("CMakeLists.txt")) {
-                    cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
-                    if (!fs::exists("build")) fs::create_directory("build");
-                    system("cd build && cmake .. && cmake --build .");
-                } else if (fs::exists("build.sh")) {
-                    cout << "[MAKE] build.sh detected. Executing..." << endl;
-                    #ifndef _WIN32
-                    system("chmod +x build.sh && ./build.sh");
-                    #else
-                    system("bash build.sh");
-                    #endif
-                } else if (fs::exists("build.bat")) {
-                    cout << "[MAKE] build.bat detected. Executing..." << endl;
-                    system("build.bat");
+                if (buildSuccess) {
+                    if (fs::exists(outputName)) {
+                        cout << "\n[RUN] Executing " << outputName << "..." << endl;
+                        string cmd = outputName;
+                        #ifndef _WIN32
+                        if (cmd.find('/') == string::npos) cmd = "./" + cmd;
+                        std::error_code ec;
+                        fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
+                        #endif
+                        string sysCmd = "\"" + cmd + "\"";
+                        system(sysCmd.c_str());
+                    } else {
+                        cout << "[WARN] Output binary '" << outputName << "' not found." << endl;
+                        cout << "       (Hint: Use -o <filename> to specify the expected binary name)" << endl;
+                    }
+                } else {
+                    cout << "[WARN] Build failed or missing. Skipping execution." << endl;
                 }
             }
             return 0;
@@ -1533,11 +1673,11 @@ int main(int argc, char* argv[]) {
 
             // [UPDATED v5.1] Catch literal translation attempts
             if (err.find("python.h") != string::npos || err.find("Python.h") != string::npos) {
-                 errorHistory += "\nFATAL: You are trying to include Python.h. STOP. Rewrite the code using native C++ std:: libraries only.\n";
+                 errorHistory = "FATAL: You are trying to include Python.h. STOP. Rewrite the code using native C++ std:: libraries only.\n";
             } else if (err.find("print(") != string::npos || err.find("import ") != string::npos || err.find("def ") != string::npos) {
-                 errorHistory += "\nFATAL: It seems you wrote Python code instead of C++. STOP. Return ONLY valid C++ code.\n";
+                 errorHistory = "FATAL: It seems you wrote Python code instead of C++. STOP. Return ONLY valid C++ code.\n";
             } else {
-                 errorHistory += "\n--- Error Pass " + to_string(gen) + " ---\n" + err;
+                 errorHistory = "--- Error Pass " + to_string(gen) + " ---\n" + err;
             }
 
             if (isFatalError(err) && gen > 3) {

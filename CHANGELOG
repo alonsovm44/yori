@@ -6,6 +6,13 @@ All notable changes in Yori are documented here
 - (work in progress)
 -tree shaking
 -simple IR
+[5.7.0] 2026-02-10
+1. Added `-series` mode: Generates multi-file projects sequentially to prevent AI context fatigue.
+2. Enhanced `-make` mode: Automatically detects and executes build scripts (Makefile, CMake, etc.).
+3. Improved `-run` behavior: In Architect Mode, it now executes the binary only after a successful build.
+4. Fixed SECI Template Bug: Robust handling for mixed-line `$${...}$$` blocks.
+5. Prompt Optimization: Reduced token usage and fixed error history accumulation.
+
 
 [5.6.3]
 1. added direct compilation. in case the input files are the same langauage and compiled, yori now calls the language compiler and
