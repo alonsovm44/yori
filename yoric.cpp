@@ -1,24 +1,4 @@
-/* YORI COMPILER (yori.exe) - v5.7.1 (Full Semantic Guard + SOS Support)
-   Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS] "*Custom instructions..."
-   Features: 
-     - Semantic Transpilation (Bans wrappers like Python.h or system("node"))
-     - Multi-file ingestion & Smart Import Resolution
-     - AI Error Memory & Configurable Toolchains
-     - Update Mode (-u) for iterative dev
-     - Fail-Fast on Missing Dependencies
-     - AI Dependency Hinter (Interactive)
-     - Pre-Flight Dependency Check
-     - CLI Config Management
-     - Modular Provider System (Groq, DeepSeek, OpenAI)
-     - Auto-Discovery of Local Ollama Models
-     - Smart Binary vs Source Output Detection
-     - Explain Command (Auto-Documentation with Language Support)
-     - Fix Command (Natural Language Repair)
-     - Diff Command (Semantic Change Analysis)
-     - SOS Command (Quick AI Tech Support)
-     - Custom Instruction Injection (*Prefix)
-*/
-
+/* YORI COMPILER (yori.exe) - v5.7.1*/
 #include <iostream>
 #include <fstream>
 #include <string>
