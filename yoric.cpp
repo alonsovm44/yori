@@ -166,6 +166,7 @@ map<string, LangProfile> LANG_DB = {
     {"fs",   {"fs",  "F#",      ".fs",  "dotnet --version", "dotnet build", true}},
     {"vb",   {"vb",  "VB.NET",  ".vb",  "dotnet --version", "dotnet build", true}},
     {"groovy",{"groovy","Groovy",".groovy","groovy -v", "groovyc", false}},
+    {"tex",  {"tex", "LaTeX",   ".tex", "pdflatex --version", "pdflatex -interaction=nonstopmode", false}},
     {"acn",  {"acn", "Acorn",   ".acn", "", "", false}}
 };
 

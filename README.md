@@ -1,12 +1,35 @@
 # Yori 
-Yori is a free and open-source CLI tool that helps you generate and build code using language models. It supports a simple multi-file DSL (EXPORT: blocks) and can retry compilation automatically by feeding compiler errors back into the model (self-healing).
+Yori isolates AI logic into semantic containers, so your manual code stays safe.
+
+Yori is a free and open-source CLI tool that orchestrates code generation using language models. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden.
+
 Generate complete projects from natural language.
 100% local. 100% private. 100% free.
 No subscriptions. No telemetry. No cloud.
 Your code, your machine, your rules.
 
+
+
 --- 
 ## What is Yori?
+
+### The one liner
+"Yori isolates AI logic into semantic containers, so your manual code stays safe."
+--- 
+
+###
+Every developer knows the risk of asking AI to modify a file: it’s like giving a junior developer root access to your production server. They might fix the bug, but they might also refactor your working code or delete critical comments.
+
+We built Yori to solve this trust problem. Think of it like Docker for Code:
+
+The Host System is your manual code—the architecture you’ve perfected.
+The Containers are the $${ ... }$$ blocks—isolated zones where the AI is allowed to work.
+The AI can run wild inside the container, generating complex logic, but it cannot touch the host. It cannot rewrite your structure. It is safely contained.
+
+This turns AI from a chaotic re-writer into a precision tool. You maintain architectural control, while the AI handles the implementation details."
+
+### Yori as a "compiler"
+
 Traditional compilers (GCC, Clang, rustc) translate code based on syntax and do not attempt to fix errors for you. When a build fails, you are left to interpret compiler messages, search documentation, and debug the issue manually.
 
 Yori is a command-line tool that sits between your intent (written in plain text or pseudo-code) and your existing build tools. It uses a configured language model (local or cloud) to generate source code, writes the output to disk, and optionally runs the compiler or build script.
