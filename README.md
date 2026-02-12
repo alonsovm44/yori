@@ -1,6 +1,4 @@
 # Yori 
-Yori isolates AI logic into semantic containers, so your manual code stays safe.
-
 Yori is a free and open-source CLI tool that orchestrates code generation using language models. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden.
 
 Generate complete projects from natural language.
@@ -8,25 +6,23 @@ Generate complete projects from natural language.
 No subscriptions. No telemetry. No cloud.
 Your code, your machine, your rules.
 
-
-
 --- 
 ## What is Yori?
 
 ### The one liner
-"Yori isolates AI logic into semantic containers, so your manual code stays safe."
+"Yori isolates AI logic into semantic containers, so your manual code stays safe." Or this
+"Yori is a Semantic Firewall. It prevents AI from executing changes outside of designated safe zones."
+
 --- 
 
 ###
-Every developer knows the risk of asking AI to modify a file: it’s like giving a junior developer root access to your production server. They might fix the bug, but they might also refactor your working code or delete critical comments.
+Every developer knows the risk of asking AI to modify a file: it’s like giving a junior developer root access to your production server. It's **all or nothing**. They might fix the bug, but they might also refactor your working code or delete critical comments.
 
-We built Yori to solve this trust problem. Think of it like Docker for Code:
+We built Yori to solve this trust problem. Think of it like Docker for source code:
 
-The Host System is your manual code—the architecture you’ve perfected.
-The Containers are the $${ ... }$$ blocks—isolated zones where the AI is allowed to work.
-The AI can run wild inside the container, generating complex logic, but it cannot touch the host. It cannot rewrite your structure. It is safely contained.
+Instead of a Host System we have a Source Code File. The Containers are the $${  }$$ blocks, isolated zones where the AI is allowed to work. Instead of isolating runtimes, Yori isolates code blocks. The AI knows the context are the container and undestands the logic of the rest of your program, but is forbbiden to touch it, it can run wild inside the container, generating complex logic, but it won't touch the host. It cannot rewrite your structure. It is safely contained.
 
-This turns AI from a chaotic re-writer into a precision tool. You maintain architectural control, while the AI handles the implementation details."
+This turns AI from a chaotic re-writer from scratch into a precision tool. You maintain architectural control, while the AI handles the implementation details *you want* to give to it.
 
 ### Yori as a "compiler"
 
