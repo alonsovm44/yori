@@ -1,5 +1,11 @@
 # Yori 
 Yori is a free and open-source CLI tool that helps you generate and build code using language models. It supports a simple multi-file DSL (EXPORT: blocks) and can retry compilation automatically by feeding compiler errors back into the model (self-healing).
+Generate complete projects from natural language.
+100% local. 100% private. 100% free.
+No subscriptions. No telemetry. No cloud.
+Your code, your machine, your rules.
+Big Tech will eventually offer semantic blocks as a service.
+We offer it as software.
 --- 
 ## What is Yori?
 Traditional compilers (GCC, Clang, rustc) translate code based on syntax and do not attempt to fix errors for you. When a build fails, you are left to interpret compiler messages, search documentation, and debug the issue manually.

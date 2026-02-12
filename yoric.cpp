@@ -830,7 +830,6 @@ void selectTarget() {
 
 // --- MAIN ---
 int main(int argc, char* argv[]) {
-    std::cout << "DEBUG: direct compilation works"<< std::endl;
     auto startTime = std::chrono::high_resolution_clock::now();
     initLogger(); 
 
