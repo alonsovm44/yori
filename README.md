@@ -10,8 +10,7 @@ Your code, your machine, your rules.
 ## What is Yori?
 
 ### The one liner
-"Yori isolates AI logic into semantic containers, so your manual code stays safe." Or this
-"Yori is a Semantic Firewall. It prevents AI from executing changes outside of designated safe zones."
+"Yori isolates AI logic into semantic containers, so your manual code stays safe." 
 
 --- 
 
@@ -20,7 +19,7 @@ Every developer knows the risk of asking AI to modify a file: it’s like giving
 
 We built Yori to solve this trust problem. Think of it like Docker for source code:
 
-Instead of a Host System we have a Source Code File. The Containers are the `$${  }$$` blocks, isolated zones where the AI is allowed to work. Instead of isolating runtimes, Yori isolates code blocks. The AI knows the context are the container and undestands the logic of the rest of your program, but is forbbiden to touch it, it can run wild inside the container, generating complex logic, but it won't touch the host. It cannot rewrite your structure. It is safely contained.
+Instead of a Host System we have a Source Code File. The Containers are the `$${  }$$` blocks, isolated zones where the AI is allowed to work. Instead of isolating runtimes, Yori isolates code blocks. The is aware of the context outside, it undestands the logic of the rest of your program, but is forbbiden to touch it, it can run wild inside the semantic container, generating complex logic, but it won't touch the host. It cannot rewrite your structure. It is safely contained.
 
 This turns AI from a chaotic re-writer from scratch into a precision tool. You maintain architectural control, while the AI handles the implementation details *you want* to give to it.
 

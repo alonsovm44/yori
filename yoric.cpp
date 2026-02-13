@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v5.7.1*/
+/* YORI COMPILER (yori.exe) - v5.7.2*/
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -49,7 +49,7 @@ string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
-const string CURRENT_VERSION = "5.7.1";
+const string CURRENT_VERSION = "5.7.2";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
