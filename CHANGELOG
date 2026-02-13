@@ -7,6 +7,9 @@ All notable changes in Yori are documented here
 -tree shaking
 -simple IR
 
+[5.7.2]
+1. Improved readme
+
 [5.7.1]
 1. Fixed bug were if api errors ocurred in `-series` mode it would interrupr file generation and skip them, ruining the project.
 
