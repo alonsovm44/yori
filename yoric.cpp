@@ -120,7 +120,8 @@ bool isFatalError(const string& errMsg) {
 // --- LANGUAGE SYSTEM ---
 struct LangProfile {
     string id; string name; string extension;  
-    string versionCmd; string buildCmd; bool producesBinary; 
+    string versionCmd; string buildCmd; bool producesBinary;
+    string checkCmd; 
 };
 
 map<string, LangProfile> LANG_DB = {
@@ -128,7 +129,7 @@ map<string, LangProfile> LANG_DB = {
     {"c",    {"c",   "C",   ".c",   "gcc --version", "gcc", true}},
     {"rust", {"rust","Rust",".rs",  "rustc --version", "rustc", true}}, 
     {"go",   {"go",  "Go",  ".go",  "go version", "go build", true}},
-    {"py",   {"py",  "Python", ".py", "python --version", "python -m py_compile", false}},
+    {"py",   {"py",  "Python", ".py", "python --version", "python -m py_compile", false, "python"}},
     {"js",   {"js",  "JavaScript", ".js", "node --version", "node -c", false}},
     {"ts",   {"ts",  "TypeScript", ".ts", "tsc --version", "tsc --noEmit", false}},
     {"cs",   {"cs",  "C#",  ".cs",  "dotnet --version", "dotnet build", true}},
@@ -768,7 +769,8 @@ set<string> extractDependencies(const string& code) {
 
 bool preFlightCheck(const set<string>& deps) {
     if (deps.empty()) return true;
-    if (CURRENT_LANG.id != "cpp" && CURRENT_LANG.id != "c") return true; 
+    // If no check command is defined and it's not C/C++, skip check
+    if (CURRENT_LANG.checkCmd.empty() && CURRENT_LANG.id != "cpp" && CURRENT_LANG.id != "c") return true; 
 
     cout << "[CHECK] Verifying dependencies locally..." << endl;
     string tempCheck = "temp_dep_check" + CURRENT_LANG.extension;
@@ -780,10 +782,19 @@ bool preFlightCheck(const set<string>& deps) {
             else out << "#include <" << d << ">\n"; 
         }
         out << "int main() { return 0; }\n";
-    }
+    } else if (CURRENT_LANG.id == "py") {
+        for(const auto& d : deps) {
+            out << "import " << d << "\n";
+        }
+    } // pending for the rest of languages - for now we only do strict checks for C/C++ and Python
     out.close();
     
-    string cmd = CURRENT_LANG.buildCmd + " -c \"" + tempCheck + "\""; 
+    string cmd;
+    if (!CURRENT_LANG.checkCmd.empty()) {
+        cmd = CURRENT_LANG.checkCmd + " \"" + tempCheck + "\"";
+    } else {
+        cmd = CURRENT_LANG.buildCmd + " -c \"" + tempCheck + "\""; 
+    }
     CmdResult res = execCmd(cmd);
     
     fs::remove(tempCheck);
