@@ -1,19 +1,19 @@
-# Changelog
+## v5.7.3 2026-02-14
 
-All notable changes in Yori are documented here
+Added:
 
-## [Unreleased] / En desarrollo
-- (work in progress)
--tree shaking
--simple IR
+Removed:
 
-[5.7.2]
+Improved/Fixed:
+
+
+## [5.7.2]
 1. Improved readme
 
-[5.7.1]
+## [5.7.1]
 1. Fixed bug were if api errors ocurred in `-series` mode it would interrupr file generation and skip them, ruining the project.
 
-[5.7.0] 2026-02-10
+## [5.7.0] 2026-02-10
 1. Added `-series` mode: Generates multi-file projects sequentially to prevent AI context fatigue.
 2. Enhanced `-make` mode: Automatically detects and executes build scripts (Makefile, CMake, etc.).
 3. Improved `-run` behavior: In Architect Mode, it now executes the binary only after a successful build.
@@ -21,19 +21,19 @@ All notable changes in Yori are documented here
 5. Prompt Optimization: Reduced token usage and fixed error history accumulation.
 
 
-[5.6.3]
+## [5.6.3]
 1. added direct compilation. in case the input files are the same langauage and compiled, yori now calls the language compiler and
 attempts to compile it directly so it saves tokens, it only sends the code to the llm if it finds errors
 
 2. Full integration with Versa
 
-[5.5] 2026-04-02
+## [5.5] 2026-04-02
 1. Added -make flag to yori
     It scans the yori text file looking for exports, it makes the directories and files indicated by the export keyword
 2. implemented an Auto-Detection Build Trigger in yoric.cpp. Now, when running in -make mode with the -run flag, Yori will scan the output directory for standard build configurations (Makefile, CMakeLists.txt, scripts) and automatically execute the appropriate build commands.
     
 
-[5.3] 2026-01-31 Don Bosco's day
+## [5.3] 2026-01-31 Don Bosco's day
 1. added -3D command to support making of 3D files from gen.ai, currently supported files are
     -obj
     -stl
@@ -42,7 +42,7 @@ attempts to compile it directly so it saves tokens, it only sends the code to th
     -svg
 >yori inputfile.ext -o output.ext2 -computing_mode -3d "*instructions"
 
-[5.2.5] 2026-01-30
+## [5.2.5] 2026-01-30
 1. Added see command to yori
     >yori config see 
     (prints the current configuration)
@@ -51,12 +51,12 @@ attempts to compile it directly so it saves tokens, it only sends the code to th
 3. added max retries command
     >yori config max-retries <value>
     (this configures the amount of iterations permitted for the healing loop)
-[v5.1.0] 2026-01-23
+## [v5.1.0] 2026-01-23
 
-1. Added sos command to ask model help based on a prompt 
+## 1. Added sos command to ask model help based on a prompt 
     >yori sos [language] [-local | -cloud] "prompt"
 
-[v4.9.1] 2026-01-22
+## [v4.9.1] 2026-01-22
 
 ### Added
 1. Config menu command
@@ -76,7 +76,7 @@ In the language flag the user is meant to indicate which natural language (spani
 It generates a markdown document explaining what changed between file versions, which entities changed, a summary of the changes in general, it generates the expaination in the indicated language
 
 
-[v4.5.1] 2026-01-20
+## [v4.5.1] 2026-01-20
 
 ### Added
 1. Fatal error handling, now error that are unfixable by the engine abort the whole operation.
@@ -84,7 +84,7 @@ It generates a markdown document explaining what changed between file versions, 
 3. Pre-flight checks, now the system checks for dependency error before generating program tokens, saving computation resources
 4. Cache logic is back and now supportsmultiple files
 
-[v4.5] - 2026-01-20
+## [v4.5] - 2026-01-20
 
 ### Added
 
@@ -136,3 +136,12 @@ It generates a markdown document explaining what changed between file versions, 
 
 ## Notas adicionales
 - The project is in early alpha. Contributions are welcomed / son bienvenidas!
+
+# Changelog
+All notable changes to this project will be documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased] / En desarrollo
+- (work in progress)
+-tree shaking
+-simple IR

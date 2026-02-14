@@ -1,11 +1,13 @@
-TODO 
-For version 5.7.2
+# TODO LIST
+If you could help me getting this donde I would appreciate it much
+ 
+## For version 5.7.2
 -Fix readme so it does not sound like vaporware, make readme more concise [done]
 
 
 # For version 5.8
 
-1. preFlightcheck works for any language not just hardcoded c & c++ (lines 768+)
+1. preFlightcheck works for any language not just hardcoded c & c++ (lines 768+) [done for python, pending for the rest]
 
 2. Treeshaking, at least functional
 
@@ -101,17 +103,12 @@ for (const auto& item : blueprint) {
 
 
 ## For 6.0
-1.  AST w tree sitter
-
-2. Internal semantic analysis
+1.  AST w tree sitter (not really needed but cool for 6.0 onwards)
 
 3. Project memory
 
-4. Own intermediate representation (IR)
-
-5. Structual evaluation before compilinig
-
 6. Modularize yoric.cpp into components each managing an aspect of the program, so other find it easier to contribute.
+[make only when contributors arrive]
 
 **this requires YoriHub page working**
 
