@@ -9,13 +9,16 @@
 
 ## Abstract
 
-We present **Yori**, a practical meta-compiler that enables developers to mix concrete code with natural language intent within the same source file. Using a simple delimiter syntax (`$${...}$$`), programmers can write hybrid programs where algorithmic details are specified in traditional code while boilerplate, utilities, or exploratory logic is expressed in natural language. Yori transpiles these semantic blocks to executable code across 30+ languages using Large Language Models (LLMs) as a backend, with multiple provider support (local Ollama, OpenAI, Google). 
+We present **Yori**, a practical meta-compiler protoype that enables developers to mix concrete code with natural language or high level pseudocode intent within the same source file. Using a simple delimiter syntax (`$${...}$$`), programmers can write hybrid programs where algorithmic details are specified in traditional code while boilerplate, utilities, or exploratory logic is expressed in natural language. Yori transpiles these semantic blocks to executable code across 30+ languages using Large Language Models (LLMs) as a backend, with multiple provider support (local Ollama, OpenAI, Google). 
 
-Key features include: (1) inline semantic blocks that preserve surrounding code context, (2) multi-file project generation via `EXPORT` directives, (3) iterative compilation with error feedback to improve LLM output reliability, (4) pattern detection to prevent common LLM failure modes (wrapper attempts, lazy translations), and (5) integrated developer tools (code repair, documentation generation, semantic diff analysis). Our implementation demonstrates practical viability on real-world programs with a 68% first-pass success rate and 89% success within 5 retry attempts using local models.
+Key features include: (1) inline semantic blocks that preserve surrounding code context, (2) multi-file project generation via `EXPORT` directives, (3) iterative compilation with error feedback to improve LLM output reliability, (4) pattern detection to prevent common LLM failure modes (wrapper attempts, lazy translations), and (5) integrated developer tools (code repair, documentation generation, semantic diff analysis). 
 
 **Keywords:** LLM-assisted programming, hybrid programming paradigm, semantic compilation, code generation, developer tools
 
 ---
+## The one liner
+Yori summarized in one sentance:
+>Stop giving AI root access to your code. Yori isolates AI logic into semantic containers, so your manual code stays safe.
 
 ## 1. Introduction
 
@@ -44,7 +47,7 @@ int main() {
 }
 ```
 
-The `$${...}$$` blocks are not comments—they are **semantic placeholders** compiled to concrete code by an LLM while preserving the surrounding C++ structure (includes, main signature, return statement).
+The `$${...}$$` blocks are not comments, they are **semantic placeholders** compiled to concrete code by an LLM while preserving the surrounding C++ structure (includes, main signature, return statement).
 
 This enables:
 - **Gradual specification**: Start with intent, refine to code incrementally
@@ -54,7 +57,7 @@ This enables:
 
 ### 1.2 Contributions
 
-This paper describes the design and implementation of Yori, a working compiler supporting this paradigm. Our contributions are:
+This paper describes the design and implementation of Yori, a working meta-compiler supporting this paradigm. Our contributions are:
 
 1. **Lightweight syntax convention** for embedding semantic blocks in source code
 2. **Multi-file orchestration** through `EXPORT` directives for project generation
@@ -62,7 +65,6 @@ This paper describes the design and implementation of Yori, a working compiler s
 4. **Pattern-based failure detection** to catch common LLM anti-patterns
 5. **Integrated developer tooling** for code repair, documentation, and analysis
 6. **Multi-provider LLM backend** supporting local and cloud models
-7. **Evaluation on real programs** demonstrating practical viability
 
 ---
 
@@ -70,7 +72,7 @@ This paper describes the design and implementation of Yori, a working compiler s
 
 ### 2.1 Semantic Block Syntax
 
-A **semantic block** is delimited by `$${` and `}$$` containing natural language:
+A **semantic block** is delimited by `$${` and `}$$` containing natural language or a custom DSL:
 
 ```
 semantic_block ::= "$${" natural_language_text "}$$"
@@ -79,7 +81,12 @@ semantic_block ::= "$${" natural_language_text "}$$"
 Design rationale:
 - **Distinctive markers** (`$${`, `}$$`) avoid conflicts with existing language syntax
 - **Natural language content**: No special formatting required
-- **Position-independent**: Can appear anywhere code can appear in target language
+- **Position-independent**: Can appear anywhere, code can appear in target language
+- **Identity**: Containers can be named like this:
+```
+$$ "my_container" { intent goes here }$$
+```
+**Benefits of Semantic Containers**: it effectively sandboxes AI generation in constrained spaces, but inherits the surrounding file as context, leaving it intact. This way developers can safely leverage the speed of AI generation without risking the stability of their existing architecture. They maintain absolute control over the file's structure, imports, and critical logic, effectively treating the AI as a specialized contractor who is strictly forbidden from touching the load-bearing walls of the application. This resolves the "trust gap" that currently prevents AI from being adopted in professional, mission-critical codebases.
 
 **Current limitations:**
 - No nesting support (`$${  $${...}$$  }$$` fails)
@@ -98,7 +105,7 @@ Pipeline:
 3. OPTIMIZE: If valid source without blocks → direct compile (bypass LLM)
 4. GENERATE: Query LLM with context (surrounding code + errors)
 5. VALIDATE: Compile with native toolchain
-6. ITERATE: On failure, retry with error feedback (max 15 attempts)
+6. ITERATE: On failure, retry with error feedback (max N attemps (configurable))
 7. OUTPUT: Save binary or source file
 ```
 
@@ -205,7 +212,7 @@ for attempt in 1..MAX_RETRIES:
 end
 ```
 
-Compiler error messages provide **ground truth feedback** that guides the LLM toward valid solutions. We observe that most errors are fixed within 2-3 iterations.
+Compiler error messages provide **ground truth feedback** that guides the LLM toward valid solutions. We observe that most errors are fixed within 2-4 iterations.
 
 ### 3.2 Pattern-Based Failure Detection
 
@@ -258,7 +265,8 @@ if compilation_fails:
     abort_before_expensive_LLM_call()
 ```
 
-This prevents wasted API calls and tokens on doomed-to-fail generations.
+This prevents wasted API calls and tokens on doomed-to-fail generations. 
+>Note: as of version 5.8 this is only implemented for python and c/c++
 
 ### 3.4 Direct Compilation Optimization
 
@@ -307,7 +315,7 @@ string callAI(string prompt) {
 
 **Supported backends:**
 - **Ollama** (default): Local models, zero cost, privacy-preserving
-- **OpenAI**: GPT-4, GPT-3.5 via API
+- **OpenAI**: GPT-4, GPT-5 via API
 - **Google**: Gemini Pro, Flash via API
 - **Compatible APIs**: Groq, together.ai, any OpenAI-compatible endpoint
 
@@ -327,6 +335,11 @@ Configuration via `config.json`:
   "max_retries": 15
 }
 ```
+Users can aquire a free API key through
+```
+yori get-key
+```
+This will open the browser in apifreellm.com website, where users can access to free API keys. 
 
 Users can switch providers with flags:
 ```bash
@@ -389,7 +402,7 @@ Beyond transpilation, Yori provides AI-powered development utilities:
 ### 5.1 Code Repair
 
 ```bash
-yori fix myfile.cpp "change the sorting algorithm to use quicksort"
+yori fix myfile.cpp "change the sorting algorithm in line 644 to use quicksort"
 ```
 
 **Workflow:**
@@ -405,7 +418,7 @@ yori fix myfile.cpp "change the sorting algorithm to use quicksort"
 ### 5.2 Interactive Help (SOS)
 
 ```bash
-yori sos cpp "error: no matching function for call to 'std::vector<int>::push'"
+yori sos english "error: no matching function for call to 'std::vector<int>::push'"
 ```
 
 **Workflow:**
@@ -514,6 +527,22 @@ yori program.yori -rust -o program
 - Prototyping in Python, production in C++
 - Educational materials showing same algorithm in multiple languages
 
+### 6.3 Context assimilation
+
+Yori supports this
+```
+yori script.py file.c scriptB.js -o app.exe -cpp 
+```
+Yori acts as a universal translator:
+
+1. Read Phase: It reads script.py (Python), file.c (C), and scriptB.js (JavaScript).
+2. Context Extraction: It ignores the syntax differences and extracts the Logic and Intent (including any $${ ... }$$ blocks).
+3. Harmonization: It builds a unified "Project Context." It sees that script.py defines a data structure and file.c defines a sorting algorithm.
+4. Transpilation: It melts down all that logic and re-casts it into the target language: C++ (-cpp).
+
+Output: It produces a single, unified native binary app.exe.
+
+
 ---
 
 ## 7. Implementation Details
@@ -534,7 +563,7 @@ int main() {
 - Recursive import resolution
 - Cycle detection
 - Contextual inclusion (imports are visible to LLM)
-
+>note: as of version 5.8 Yori does not support tree shaking yet.
 ### 7.2 Template Stripping
 
 When exporting files, Yori strips semantic blocks from output:
@@ -586,7 +615,14 @@ Yori hashes input content and skips recompilation if unchanged:
 
 ```cpp
 current_hash = hash(source_code + target_language + model_id);
-
+```
+1. **Global Build Cache**: Yori hashes the aggregated input content and skips recompilation if the entire project context is unchanged.
+2. **Semantic Container Caching (v5.8)**: Named containers (`$$ "id" { ... }$$`) are hashed individually and tracked in a `.yori.lock` file. When running in update mode (`-u`), Yori compares the current prompt hash against the lockfile.
+   - **Match**: The cached implementation is injected from `yori_cache/`, bypassing the LLM.
+   - **Mismatch**: The block is regenerated.
+   
+This enables **incremental builds**, allowing developers to "freeze" working logic while iterating on other parts of the system.
+```
 if (cached_hash == current_hash && output_exists) {
     cout << "[CACHE] No changes detected. Using existing build.\n";
     return;
@@ -598,12 +634,70 @@ if (cached_hash == current_hash && output_exists) {
 - Target language change
 - Model ID change
 - Update mode flag (`-u`)
+- Explicit cache cleaning (`yori clean cache`)
 
 ---
 
-## 8. Related Work
+## 8. Problems that can become more accessible with LLMs and Yori
+Here is a list of problems and domains that are now solvable or significantly more accessible thanks to the Yori paradigm:
 
-### 8.1 LLM-Assisted Programming Tools
+1. **The "Legacy Code" Crisis**
+Problem: Critical infrastructure (banks, government, airlines) runs on outdated languages (COBOL, Fortran) that few developers understand. Rewriting is prohibitively expensive and risky.
+
+> Yori Solution: Developers can describe the behavior of the legacy system in a high level DSL (Intent) and re-compile it into modern, safe languages like Rust or Go. It turns a "rewrite" into a "re-compilation."
+
+2. The "High-Performance Barrier" for Scientists
+Problem: Researchers (Physicists, Biologists, Economists) often prototype in Python because C++ is too difficult. However, Python is too slow for large-scale simulations, forcing them to wait days for results or hire expensive engineers.
+
+> Yori Solution: They write the simulation logic in readable DSL/Python syntax, and Yori compiles it to highly optimized C++ or CUDA (provided they have necessary dependencies installed), giving them instant speed without the syntax headache.
+
+3. The "Cross-Platform Porting" Cost
+Problem: Building an app for Windows, Linux, macOS, Android, and iOS requires maintaining 3-4 separate codebases (Swift, Kotlin, C++, Java).
+
+>Yori Solution: Write the core logic once in .yori. Use container inheritance to define platform-specific UI adjustments. Compile to native binaries for every platform with a single command.
+
+4. The "Trust Gap" in Enterprise AI Adoption
+Problem: CTOs want the productivity of AI, but they cannot risk the AI hallucinating security vulnerabilities or breaking architecture in production code.
+
+> Yori Solution: Semantic Containers act as a Firewall. The AI is strictly forbidden from touching the "Architecture" (manual code). It can only operate inside the logic containers, making AI coding safe enough for enterprise use.
+
+5. The "Technical Debt" Spiral
+Problem: Over time, code becomes messy ("spaghetti code") because developers take shortcuts to meet deadlines. Refactoring is risky because you might break existing features.
+
+> Yori Solution: Since the "Source of Truth" is the Intent (the prompt), the code is disposable. If the code becomes messy, you simply change the prompt and re-compile. The "Technical Debt" is erased because the code is temporary; only the Intent is permanent.
+
+6. The "Boilerplate" Burden
+Problem: Developers spend 30-50% of their time writing repetitive boilerplate code (API endpoints, CRUD operations, getters/setters, config files).
+
+>Yori Solution: Create a "Boilerplate Container" once. Use it across the entire project. Change it in one place, and every instance updates instantly.
+
+7. The "Single-Point of Failure" (Bus Factor)
+Problem: If a key developer leaves a team, they take the knowledge of "how the code works" with them. The remaining team struggles to understand the complex syntax.
+
+>Yori Solution: The knowledge is stored in Natural Language inside the source file. A new developer can read the .yori file and immediately understand why the code exists, not just what it does. The "Bus Factor" is mitigated by readable source code.
+
+8. The "IoT/Embedded Resource" Constraint
+Problem: Writing firmware for microcontrollers (Arduino, ESP32) often requires low-level C/C++ knowledge that hobbyists don't have.
+
+>Yori Solution: Hobbyists write high-level logic 
+```
+$${ blink LED if temperature > 30 }$$)
+``` 
+> and Yori compiles it to the tight, low-level C++ required by the microcontroller.
+
+9. Educational Accessibility
+Problem: Computer Science courses lose 50% of students in the first semester because of syntax errors (missing semicolons, pointer confusion).
+
+>Yori Solution: Students learn Logic and Algorithms first using Acorn. They focus on problem-solving rather than syntax debugging. The "compiler" teaches them by showing the generated code.
+
+10. The "Documentation Drift"
+Problem: Code changes, but documentation doesn't. The docs become lies.
+
+>Yori Solution: The Documentation is the Code. The semantic blocks describe the intent. There is no separate document to maintain, so it never goes out of date.
+
+## 9. Related Work
+
+### 9.1 LLM-Assisted Programming Tools
 
 **GitHub Copilot** [[1]](#references): IDE autocomplete based on GPT Codex. Provides line/block suggestions but requires accepting/rejecting each suggestion. Not integrated into compilation pipeline.
 
@@ -613,20 +707,20 @@ if (cached_hash == current_hash && output_exists) {
 
 **Key difference**: Yori treats semantic blocks as **part of the source code** rather than external prompts. Generated code is validated through native toolchains, not just "accepted" by the user.
 
-### 8.2 Intentional Programming
+### 9.2 Intentional Programming
 
 **Intentional Software (Simonyi, 2000s)** [[2]](#references): Domain-specific notations compiled to code through projectional editing. Required custom language workbenches.
 
 **Key difference**: Yori uses natural language interpreted by LLMs, not custom DSLs. No special tooling required—semantic blocks work in any text editor.
 
-### 8.3 Program Synthesis
+### 9.3 Program Synthesis
 
 **Sketch** [[3]](#references): Constraint-based synthesis from partial programs with holes.  
 **Rosette** [[4]](#references): Solver-aided synthesis from formal specifications.
 
 **Key difference**: These systems require formal specifications (types, assertions, examples). Yori accepts informal natural language.
 
-### 8.4 Natural Language Programming
+### 9.4 Natural Language Programming
 
 **AlphaCode** [[5]](#references): Generates competitive programming solutions from problem descriptions.  
 **CodeGen** [[6]](#references): Multi-turn program synthesis from conversational prompts.
@@ -635,9 +729,9 @@ if (cached_hash == current_hash && output_exists) {
 
 ---
 
-## 9. Limitations and Future Work
+## 10. Limitations and Future Work
 
-### 9.1 Current Limitations
+### 10.1 Current Limitations
 
 **1. No formal semantics**  
 Semantic blocks lack type constraints. The LLM may generate code that compiles but has incorrect semantics if the intent is ambiguous.
@@ -670,15 +764,84 @@ Weak models (e.g., 1B parameter) produce poor code. System requires competent mo
 **7. Platform-specific issues**  
 File locking on Windows requires retry logic. Some toolchains (LaTeX, .NET) have complex setup requirements.
 
-### 10.2 Future Directions
-
-**Type-aware semantic blocks:**
+### 11 Future Directions
+This are theorized features not yet added in Yori (as of version 5.8)
+1. **Type-aware semantic blocks:**
 ```cpp
 int $${compute factorial}$$ (int n);  // LLM knows return type
 ```
-Infer constraints from surrounding code (type signatures, variable usage).
+Infer constraints from surrounding code (type signatures, variable usage). 
 
-**Interactive refinement:**
+2. **Container inheritance**
+```
+$$ "parent_container" { parent logic }$$
+
+$$ "son container" -> "parent_container {son logic influenced by parent logic}$$
+```
+Example:
+```
+ $$ "style:secure_api" {
+    All database queries must use parameterized statements.
+    All inputs must be sanitized.
+    Use try-catch blocks for all network calls.
+}$$
+ ```
+ The Child (The Implementation):
+```cpp
+ $$ "login_handler" -> "style:secure_api" {
+    Implement the user login function.
+}$$ 
+```
+
+**The Result:**
+The AI generates the login code, but it *automatically* applies the security constraints from the parent. You don't have to remind the AI to "sanitize inputs" every time. The "DNA" of the parent is passed to the child.
+
+The "Boilerplate" Killer (Don't Repeat Yourself):
+Currently, if you want 5 different functions to handle errors the same way, you have to repeat that instruction in 5 different blocks.
+
+**With Inheritance:**
+```cpp
+ $$ "error_handler_base" {
+    Log errors to 'errors.log' with timestamp.
+    Return JSON object: {"status": "error", "msg": "..."}.
+}$$ 
+$$ "db_connect" -> "error_handler_base" { Connect to Postgres. }$$ 
+$$ "cache_connect" -> "error_handler_base" { Connect to Redis. }$$ 
+ ```
+
+Both functions will now handle errors identically because they inherited the "base" logic. If you want to change the logging format later, you **only change the parent**, and every child updates automatically.
+
+Architectural "Mixins":
+
+You could even allow multiple inheritance (conceptually) or "interfaces."
+
+```cpp
+ $$ "arch:logging" { Use spdlog library for console output. }$$  
+ $$ "arch:metrics" { Send timing data to Prometheus. }$$ 
+// The Child combines multiple behaviors
+ $$ "critical_endpoint" -> "arch:logging", "arch:metrics" {
+    Handle the payment processing request.
+}$$ 
+```
+
+ The "Refactoring" Superpower:
+
+In traditional code, refactoring requires finding every file and changing the logic.
+**With Yori Inheritance:**
+You change the **Parent Prompt**.
+The next time you run `yori -make -u`, every single child container re-compiles with the new instructions.
+
+**It solves the "Drift" problem.**
+In large projects, code drifts away from the original design spec. With Inheritance, the design spec (Parent) is permanently bonded to the implementation (Child).
+
+Summary:
+This moves Semantic Containers closer to **Biological Metaphors.**
+*   **Parents** pass traits to **Children**.
+*   You can evolve a codebase by evolving the "DNA" (the Parent Containers) rather than performing surgery on the "Cells" (the individual functions).
+
+It turns Yori into a **Genetic Programming Environment.**
+
+**3. Interactive refinement:**
 ```
 yori compile program.yori --interactive
 > Block 1 is ambiguous. Did you mean:
@@ -687,13 +850,13 @@ yori compile program.yori --interactive
 > 1
 ```
 
-**Fine-tuning on project codebases:**
+**4. Fine-tuning on project codebases:**
 Train domain-specific models that understand project conventions, naming patterns, architecture.
 
-**Incremental compilation:**
-Only recompile changed semantic blocks, not entire file.
+**5. Incremental compilation:**
+Only recompile changed semantic blocks, not entire file. This is already supported as of version 5.8
 
-**Multi-modal input:**
+**6. Multi-modal input:**
 ```cpp
 $${
     [diagram.png]  // Flowchart or architecture diagram
@@ -701,17 +864,17 @@ $${
 }$$
 ```
 
-**Formal verification integration:**
+**7. Formal verification integration:**
 Generate proofs that code matches specification, or generate assertions for runtime checking.
 
-**Collaborative editing:**
+**8. Collaborative editing:**
 Multiple developers work on same file, some writing concrete code, others refining semantic blocks.
 
 ---
 
-## 10. Conclusion
+## 12. Conclusion
 
-We presented **Yori**, a practical system for hybrid AI-assisted programming where natural language intent and concrete code coexist as equal citizens. Our key insights:
+We presented **Yori**, a practical system for hybrid AI-assisted programming where natural language intent (or any DSL) and concrete code coexist as equal citizens. Our key insights:
 
 1. **Lightweight syntax** (`$${...}$$`) integrates seamlessly with existing languages
 2. **Iterative refinement** with compiler error feedback dramatically improves LLM reliability
@@ -728,6 +891,8 @@ Yori demonstrates that semantic programming is **practical today** with current 
 ## Acknowledgments
 
 Thanks to the open-source community for Ollama, nlohmann/json, and the countless developers whose work enables local-first AI.
+
+Thanks to Google for Gemini 3 VS Code extension, it was very useful all the way.
 
 ---
 
@@ -787,6 +952,7 @@ yori config max-retries 20        # Set retry limit
 yori --init                       # Create project template
 yori --version                    # Show version
 yori --clean                      # Remove temp files
+yori clean cache                  # Clear semantic cache
 ```
 
 ---

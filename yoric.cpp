@@ -1,4 +1,6 @@
 /* YORI COMPILER (yori.exe) - v5.7.2*/
+
+// build with this: g++ yoric.cpp -o yori -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -1876,16 +1878,38 @@ int main(int argc, char* argv[]) {
         if (!errorHistory.empty()) prompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
         prompt << "\nOUTPUT: Only code.";
 
-        string response = callAI(prompt.str());
-        string code = extractCode(response);
+        string code;
+        bool apiSuccess = false;
+        int apiRetries = 0;
+
+        while (apiRetries < MAX_RETRIES) {
+            string response = callAI(prompt.str());
+            code = extractCode(response);
         
-        if (code.find("ERROR:") == 0) { 
-            cout << "   [!] API Error: " << code.substr(6) << endl; 
-            log("API_FAIL", code); 
-            if (code.find("JSON Parsing Failed") != string::npos) {
-                 cout << "       (Hint: Check 'yori config cloud-protocol'. Current: " << PROTOCOL << ", Provider URL: " << API_URL << ")" << endl;
+            if (code.find("ERROR:") == 0) { 
+                cout << "   [!] API Error (Attempt " << (apiRetries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl; 
+                log("API_FAIL", code); 
+                if (code.find("JSON Parsing Failed") != string::npos) {
+                     cout << "       (Hint: Check 'yori config cloud-protocol'. Current: " << PROTOCOL << ", Provider URL: " << API_URL << ")" << endl;
+                }
+                
+                int waitTime = 5 * (apiRetries + 1);
+                if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) {
+                    cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                } else {
+                    cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                }
+                std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                apiRetries++;
+            } else {
+                apiSuccess = true;
+                break;
             }
-            continue; 
+        }
+
+        if (!apiSuccess) {
+            cout << "   [FATAL] API failed after " << MAX_RETRIES << " attempts. Aborting." << endl;
+            return 1;
         }
 
         // [NEW] Update Cache from AI Output

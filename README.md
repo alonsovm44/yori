@@ -1,3 +1,6 @@
+# Read the White Paper
+https://github.com/alonsovm44/yori/blob/master/WHITE_PAPER.md
+
 # Yori 
 Yori is a free and open-source CLI tool that orchestrates code generation using language models. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden.
 
